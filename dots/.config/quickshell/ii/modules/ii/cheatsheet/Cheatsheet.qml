@@ -59,9 +59,14 @@ Scope { // Scope
             // Map with None first, then upgrade to OnDemand after the panel is visible,
             // and only on tabs that actually need text input (Commands).
             property bool _focusReady: false
-            WlrLayershell.keyboardFocus: (_focusReady && root.tabButtonList[swipeView.currentIndex]?.icon === "terminal")
-                ? WlrKeyboardFocus.OnDemand
-                : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: {
+                if (!_focusReady) return WlrKeyboardFocus.None;
+                const icon = root.tabButtonList[swipeView.currentIndex]?.icon;
+                // Keybinds tab also needs OnDemand so the search field can take text input.
+                return (icon === "terminal" || icon === "keyboard")
+                    ? WlrKeyboardFocus.OnDemand
+                    : WlrKeyboardFocus.None;
+            }
             Timer {
                 id: focusUpgradeTimer
                 interval: 80
