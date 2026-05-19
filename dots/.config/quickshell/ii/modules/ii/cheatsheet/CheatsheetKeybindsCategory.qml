@@ -11,10 +11,23 @@ import Quickshell
 Column {
     id: root
     required property string categoryName
+    // CheatsheetKeybinds root — provides bindMatches() and normalizedQuery.
+    // Optional so the category still works if instantiated outside the search-aware parent.
+    property var cheatsheet: null
     readonly property bool isCategorized: categoryName?.length > 0
     property int maxBindWidth: 0
     property real columnSpacing: 40
     property real titleSpacing: 7
+
+    readonly property var _baseBinds: root.isCategorized
+        ? HyprlandKeybinds.keybinds.filter(b => b.description?.length > 0 && b.description.substring(0, b.description.indexOf(":")) === root.categoryName)
+        : HyprlandKeybinds.keybinds.filter(b => b.description?.length > 0 && b.description.indexOf(":") === -1)
+    readonly property var _filteredBinds: root.cheatsheet
+        ? root._baseBinds.filter(b => root.cheatsheet.bindMatches(b, root.categoryName))
+        : root._baseBinds
+    readonly property bool _hasMatches: root._filteredBinds.length > 0
+
+    visible: _hasMatches
 
     // Excellent symbol explaination and source :
     // http://xahlee.info/comp/unicode_computing_symbols.html
@@ -103,12 +116,7 @@ Column {
     Column {
         spacing: 4
         Repeater {
-            model: {
-                if (!root.isCategorized) {
-                    return HyprlandKeybinds.keybinds.filter(bind => bind.description?.length > 0 && bind.description.indexOf(":") === -1);
-                }
-                return HyprlandKeybinds.keybinds.filter(bind => bind.description?.length > 0 && bind.description.substring(0, bind.description.indexOf(":")) === root.categoryName);
-            }
+            model: root._filteredBinds
             delegate: BindLine {
                 required property var modelData
                 keyData: modelData
