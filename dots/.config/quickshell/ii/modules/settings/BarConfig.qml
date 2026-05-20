@@ -679,6 +679,19 @@ ContentPage {
     }
 
     ContentSection {
+        icon: "monitoring"
+        title: Translation.tr("Resources")
+        ConfigSwitch {
+            buttonIcon: "dashboard"
+            text: Translation.tr("Expressive popup")
+            checked: Config.options.bar.resources.expressivePopup
+            onCheckedChanged: {
+                Config.options.bar.resources.expressivePopup = checked;
+            }
+        }
+    }
+
+    ContentSection {
         icon: "tooltip"
         title: Translation.tr("Tooltips")
         ConfigRow {
