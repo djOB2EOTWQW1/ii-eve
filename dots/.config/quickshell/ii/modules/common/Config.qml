@@ -500,6 +500,12 @@ Singleton {
                 property bool splitButtons: false
                 property bool useMouseSymbol: false
                 property bool useFnSymbol: false
+                property JsonObject visibleTabs: JsonObject {
+                    property bool timetable: true
+                    property bool keybinds: true
+                    property bool elements: true
+                    property bool commands: true
+                }
                 property JsonObject fontSize: JsonObject {
                     property int key: Appearance.font.pixelSize.smaller
                     property int comment: Appearance.font.pixelSize.smaller
