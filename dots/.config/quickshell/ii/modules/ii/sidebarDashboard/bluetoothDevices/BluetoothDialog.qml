@@ -78,7 +78,7 @@ WindowDialog {
             checked: root.btEnabled
             onToggled: {
                 btSwitch.checked = Qt.binding(() => root.btEnabled);
-                if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = !root.btEnabled;
+                BluetoothStatus.setEnabled(!root.btEnabled);
             }
         }
     }

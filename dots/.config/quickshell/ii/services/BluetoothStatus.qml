@@ -19,6 +19,23 @@ Singleton {
     signal deviceConnected(BluetoothDevice device)
     signal deviceDisconnected(BluetoothDevice device)
 
+    // BlueZ rejects Powered=true while rfkill soft-blocks the adapter
+    // ("off-blocked" state). System bluetooth applets / Fn-keys leave us
+    // in that state, so unblock first and flip Powered on rfkill's exit.
+    Process {
+        id: rfkillUnblockProc
+        command: ["rfkill", "unblock", "bluetooth"]
+        onExited: {
+            if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = true
+        }
+    }
+
+    function setEnabled(value) {
+        if (!Bluetooth.defaultAdapter) return
+        if (value) rfkillUnblockProc.running = true
+        else Bluetooth.defaultAdapter.enabled = false
+    }
+
     Instantiator {
         model: Bluetooth.devices
 
