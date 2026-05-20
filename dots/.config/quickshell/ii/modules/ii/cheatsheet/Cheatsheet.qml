@@ -28,8 +28,16 @@ Scope { // Scope
 
     readonly property var visibleTabs: {
         const v = Config.options.cheatsheet.visibleTabs;
-        const filtered = root.allTabs.filter(t => !v || v[t.key] === true);
-        return filtered.length > 0 ? filtered : [root.allTabs[1]];
+        if (!v) return root.allTabs;
+        // Explicit reads so QML binding analyzer tracks each bool
+        const flags = {
+            timetable: v.timetable,
+            keybinds: v.keybinds,
+            elements: v.elements,
+            commands: v.commands,
+        };
+        const filtered = root.allTabs.filter(t => flags[t.key] === true);
+        return filtered.length > 0 ? filtered : [root.allTabs.find(t => t.key === "keybinds")];
     }
 
     readonly property var tabButtonList: root.visibleTabs.map(t => ({ icon: t.icon, name: t.name }))
