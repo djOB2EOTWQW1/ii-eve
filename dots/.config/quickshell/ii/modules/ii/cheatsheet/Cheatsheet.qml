@@ -14,24 +14,25 @@ import "commands"
 
 Scope { // Scope
     id: root
-    property var tabButtonList: [
-        {
-            "icon": "calendar_month",
-            "name": Translation.tr("Timetable")
-        },
-        {
-            "icon": "keyboard",
-            "name": Translation.tr("Keybinds")
-        },
-        {
-            "icon": "experiment",
-            "name": Translation.tr("Elements")
-        },
-        {
-            "icon": "terminal",
-            "name": Translation.tr("Commands")
-        },
+    Component { id: timetableComponent; CheatsheetTimetable {} }
+    Component { id: keybindsComponent;  CheatsheetKeybinds {} }
+    Component { id: elementsComponent;  CheatsheetPeriodicTable {} }
+    Component { id: commandsComponent;  CheatsheetCommands {} }
+
+    readonly property var allTabs: [
+        { key: "timetable", icon: "calendar_month", name: Translation.tr("Timetable"),  component: timetableComponent },
+        { key: "keybinds",  icon: "keyboard",       name: Translation.tr("Keybinds"),   component: keybindsComponent },
+        { key: "elements",  icon: "experiment",     name: Translation.tr("Elements"),   component: elementsComponent },
+        { key: "commands",  icon: "terminal",       name: Translation.tr("Commands"),   component: commandsComponent },
     ]
+
+    readonly property var visibleTabs: {
+        const v = Config.options.cheatsheet.visibleTabs;
+        const filtered = root.allTabs.filter(t => !v || v[t.key] === true);
+        return filtered.length > 0 ? filtered : [root.allTabs[1]];
+    }
+
+    readonly property var tabButtonList: root.visibleTabs.map(t => ({ icon: t.icon, name: t.name }))
 
     Loader {
         id: cheatsheetLoader
@@ -186,6 +187,15 @@ Scope { // Scope
                             Persistent.states.cheatsheet.tabIndex = currentIndex;
                         }
 
+                        Connections {
+                            target: root
+                            function onTabButtonListChanged() {
+                                if (swipeView.currentIndex >= root.tabButtonList.length) {
+                                    swipeView.currentIndex = Math.max(0, root.tabButtonList.length - 1);
+                                }
+                            }
+                        }
+
                         implicitWidth: Math.max.apply(null, contentChildren.map(child => child.implicitWidth || 0))
                         implicitHeight: Math.max.apply(null, contentChildren.map(child => child.implicitHeight || 0))
 
@@ -199,10 +209,13 @@ Scope { // Scope
                             }
                         }
 
-                        CheatsheetTimetable {}
-                        CheatsheetKeybinds {}
-                        CheatsheetPeriodicTable {}
-                        CheatsheetCommands {}
+                        Repeater {
+                            model: root.visibleTabs
+                            delegate: Loader {
+                                required property var modelData
+                                sourceComponent: modelData.component
+                            }
+                        }
                     }
                 }
             }
