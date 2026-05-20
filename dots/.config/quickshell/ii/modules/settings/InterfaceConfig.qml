@@ -139,6 +139,10 @@ ContentPage {
                         Config.options.cheatsheet.visibleTabs.keybinds = checked;
                     }
                 }
+            }
+
+            ConfigRow {
+                uniform: true
 
                 ConfigSwitch {
                     buttonIcon: "experiment"
