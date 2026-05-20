@@ -173,7 +173,17 @@ MouseArea {
         }
     }
 
-    ResourcesPopup {
-        hoverTarget: root
+    Loader {
+        active: !Config.options.bar.resources.expressivePopup
+        sourceComponent: ResourcesPopup {
+            hoverTarget: root
+        }
+    }
+
+    Loader {
+        active: Config.options.bar.resources.expressivePopup
+        sourceComponent: ExpressiveResourcesPopup {
+            hoverTarget: root
+        }
     }
 }
