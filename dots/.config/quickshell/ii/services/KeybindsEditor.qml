@@ -2,6 +2,7 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 
 import qs.modules.common
+import qs.modules.common.functions
 import qs.services
 import QtQuick
 import Quickshell
@@ -11,9 +12,10 @@ import Quickshell.Hyprland
 Singleton {
     id: root
 
-    readonly property string scriptPath: Directories.config + "/quickshell/ii/scripts/keybinds/keybind_edit.py"
-    readonly property string defaultFile: Directories.config + "/hypr/hyprland/keybinds.lua"
-    readonly property string customFile: Directories.config + "/hypr/custom/keybinds.lua"
+    readonly property string _configDir: FileUtils.trimFileProtocol(Directories.config)
+    readonly property string scriptPath: _configDir + "/quickshell/ii/scripts/keybinds/keybind_edit.py"
+    readonly property string defaultFile: _configDir + "/hypr/hyprland/keybinds.lua"
+    readonly property string customFile: _configDir + "/hypr/custom/keybinds.lua"
 
     property string _defaultText: ""
     property string _customText: ""
