@@ -104,16 +104,17 @@ Item {
     }
 
     function moveCategory(name, delta) {
-        const all = HyprlandKeybinds.keybindCategories;
-        const current = root.orderedCategories.slice();
-        const i = current.indexOf(name);
-        if (i < 0) return;
-        const j = i + delta;
-        if (j < 0 || j >= current.length) return;
-        const tmp = current[i];
-        current[i] = current[j];
-        current[j] = tmp;
-        Config.options.cheatsheet.categoryOrder = current;
+        Qt.callLater(() => {
+            const current = root.orderedCategories.slice();
+            const i = current.indexOf(name);
+            if (i < 0) return;
+            const j = i + delta;
+            if (j < 0 || j >= current.length) return;
+            const tmp = current[i];
+            current[i] = current[j];
+            current[j] = tmp;
+            Config.options.cheatsheet.categoryOrder = current;
+        });
     }
 
     readonly property int matchCount: {
