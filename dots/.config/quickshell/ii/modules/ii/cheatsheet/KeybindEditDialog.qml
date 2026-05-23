@@ -240,7 +240,10 @@ Item {
                 DialogButton {
                     buttonText: "Save"
                     enabled: root.canSave
-                    onClicked: root._emitSave()
+                    onClicked: {
+                        if (!root.canSave) return;
+                        root._emitSave();
+                    }
                 }
             }
         }
