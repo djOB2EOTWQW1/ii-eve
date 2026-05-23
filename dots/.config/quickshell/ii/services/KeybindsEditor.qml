@@ -163,6 +163,7 @@ Singleton {
     property string _pendingOp: ""
     property string _pendingSubcommand: ""
     property string _pendingJson: ""
+    property string _pendingSourceFile: ""
 
     Process {
         id: editor
@@ -187,9 +188,59 @@ Singleton {
             }
             if (result.ok) {
                 root.mutationTick++;
+                root._awaitingReload = true;
                 Hyprland.dispatch("reload");
+                reloadTimeout.restart();
             }
             root.applyFinished(root._pendingOp, result);
+        }
+    }
+
+    property bool _awaitingReload: false
+
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (root._awaitingReload && event.name === "configreloaded") {
+                root._awaitingReload = false;
+                reloadTimeout.stop();
+            }
+        }
+    }
+
+    Timer {
+        id: reloadTimeout
+        interval: 2500
+        onTriggered: {
+            if (!root._awaitingReload) return;
+            root._awaitingReload = false;
+            root._rollback();
+        }
+    }
+
+    function _rollback() {
+        if (!root._pendingSourceFile) return;
+        rollbackProc.stdinEnabled = true;
+        rollbackProc.running = true;
+    }
+
+    Process {
+        id: rollbackProc
+        command: ["python3", root.scriptPath, "rollback"]
+        stdinEnabled: true
+        running: false
+        stdout: StdioCollector {
+            id: rollbackStdout
+        }
+        onRunningChanged: {
+            if (rollbackProc.running) {
+                rollbackProc.write(JSON.stringify({ filename: root._pendingSourceFile }));
+                rollbackProc.stdinEnabled = false;
+            }
+        }
+        onExited: {
+            Hyprland.dispatch("reload");
+            root.applyFinished("rollback", { ok: false, error: "Reload failed, restored backup" });
         }
     }
 
@@ -197,6 +248,11 @@ Singleton {
         root._pendingOp = op;
         root._pendingSubcommand = subcommand;
         root._pendingJson = JSON.stringify(spec);
+        if (spec.source === "custom" || op === "add") {
+            root._pendingSourceFile = ".config/hypr/custom/keybinds.lua";
+        } else {
+            root._pendingSourceFile = ".config/hypr/hyprland/keybinds.lua";
+        }
         editor.stdinEnabled = true;
         editor.running = true;
     }

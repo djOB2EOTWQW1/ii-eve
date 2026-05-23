@@ -271,12 +271,25 @@ def cmd_set_description(spec):
     ok(changedLines=changed)
 
 
+def cmd_rollback(spec):
+    if "filename" not in spec:
+        fail("'filename' required (relative to $HOME)")
+    target = HOME / spec["filename"]
+    candidates = sorted(BACKUP_DIR.glob(f"{target.name}.*.bak"),
+                        key=lambda p: p.stat().st_mtime, reverse=True)
+    if not candidates:
+        fail("no backup available")
+    target.write_bytes(candidates[0].read_bytes())
+    ok(restoredFrom=str(candidates[0]))
+
+
 SUBCOMMANDS = {
     "find": cmd_find,
     "edit": cmd_edit,
     "delete": cmd_delete,
     "add": cmd_add,
     "set-description": cmd_set_description,
+    "rollback": cmd_rollback,
 }
 
 
