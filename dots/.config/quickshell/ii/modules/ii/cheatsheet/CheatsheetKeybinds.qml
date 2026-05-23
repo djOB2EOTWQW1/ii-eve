@@ -64,6 +64,14 @@ Item {
         });
     }
 
+    function requestAdd(category) {
+        keybindDialog.open({
+            mode: "add",
+            presetCategory: category || "Misc",
+            source: "custom",
+        });
+    }
+
     function requestDelete(keyData, combo) {
         const source = KeybindsEditor.findSourceFor(combo);
         if (source === "generated") return;

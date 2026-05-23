@@ -181,6 +181,11 @@ Rectangle {
                     keyData: modelData
                 }
             }
+
+            KeybindAddNewLine {
+                visible: root.editMode
+                onClicked: root.cheatsheet?.requestAdd(root.categoryName)
+            }
         }
     }
 
