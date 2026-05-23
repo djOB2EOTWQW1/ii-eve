@@ -11,6 +11,7 @@ import Quickshell
 Item {
     id: root
     property real padding: 4
+    property bool editMode: false
     implicitWidth: QsWindow?.window?.screen.width * 0.7 ?? 0
     implicitHeight: QsWindow?.window?.screen.height * 0.7 ?? 0
 
@@ -86,60 +87,92 @@ Item {
         anchors.margins: Appearance.rounding.small
         spacing: 14
 
-        // Pill-shaped search bar with a leading search glyph — matches the look of the screenshot.
-        Item {
-            id: searchField
+        RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 460
-            Layout.preferredHeight: 44
-            function forceActiveFocus() { searchInput.forceActiveFocus(); }
+            spacing: 10
 
-            Rectangle {
-                anchors.fill: parent
-                color: Appearance.colors.colSurfaceContainer
-                radius: Appearance.rounding.full
-            }
-            MaterialSymbol {
-                id: searchIcon
-                anchors.left: parent.left
-                anchors.leftMargin: 18
-                anchors.verticalCenter: parent.verticalCenter
-                text: "search"
-                iconSize: Appearance.font.pixelSize.large
-                color: searchInput.activeFocus ? Appearance.m3colors.m3primary : Appearance.m3colors.m3onSurfaceVariant
-            }
-            TextInput {
-                id: searchInput
-                anchors.left: searchIcon.right
-                anchors.leftMargin: 12
-                anchors.right: parent.right
-                anchors.rightMargin: 18
-                anchors.verticalCenter: parent.verticalCenter
-                color: Appearance.colors.colOnLayer0
-                selectionColor: Appearance.colors.colSecondaryContainer
-                selectedTextColor: Appearance.colors.colOnSecondaryContainer
-                font.pixelSize: Appearance.font.pixelSize.normal
-                font.family: Appearance.font.family.main
-                clip: true
-                verticalAlignment: TextInput.AlignVCenter
-                Component.onCompleted: text = CheatsheetSearch.query
-                onTextChanged: CheatsheetSearch.query = text
+            // Pill-shaped search bar with a leading search glyph — matches the look of the screenshot.
+            Item {
+                id: searchField
+                Layout.preferredWidth: 460
+                Layout.preferredHeight: 44
+                function forceActiveFocus() { searchInput.forceActiveFocus(); }
 
-                Keys.onPressed: event => {
-                    if (event.key === Qt.Key_Escape) {
-                        if (text.length > 0) text = "";
-                        else root.forceActiveFocus();
-                        event.accepted = true;
+                Rectangle {
+                    anchors.fill: parent
+                    color: Appearance.colors.colSurfaceContainer
+                    radius: Appearance.rounding.full
+                }
+                MaterialSymbol {
+                    id: searchIcon
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "search"
+                    iconSize: Appearance.font.pixelSize.large
+                    color: searchInput.activeFocus ? Appearance.m3colors.m3primary : Appearance.m3colors.m3onSurfaceVariant
+                }
+                TextInput {
+                    id: searchInput
+                    anchors.left: searchIcon.right
+                    anchors.leftMargin: 12
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: Appearance.colors.colOnLayer0
+                    selectionColor: Appearance.colors.colSecondaryContainer
+                    selectedTextColor: Appearance.colors.colOnSecondaryContainer
+                    font.pixelSize: Appearance.font.pixelSize.normal
+                    font.family: Appearance.font.family.main
+                    clip: true
+                    verticalAlignment: TextInput.AlignVCenter
+                    Component.onCompleted: text = CheatsheetSearch.query
+                    onTextChanged: CheatsheetSearch.query = text
+
+                    Keys.onPressed: event => {
+                        if (event.key === Qt.Key_Escape) {
+                            if (text.length > 0) text = "";
+                            else root.forceActiveFocus();
+                            event.accepted = true;
+                        }
+                    }
+
+                    StyledText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left
+                        visible: searchInput.text.length === 0
+                        text: "Search keybinds"
+                        color: Appearance.m3colors.m3onSurfaceVariant
+                        font.pixelSize: searchInput.font.pixelSize
                     }
                 }
+            }
 
-                StyledText {
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: parent.left
-                    visible: searchInput.text.length === 0
-                    text: "Search keybinds"
-                    color: Appearance.m3colors.m3onSurfaceVariant
-                    font.pixelSize: searchInput.font.pixelSize
+            // Edit-mode toggle, visible only when allowEditing is on.
+            Rectangle {
+                id: editToggle
+                visible: Config.options.cheatsheet.allowEditing
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
+                radius: Appearance.rounding.full
+                color: root.editMode
+                    ? Appearance.m3colors.m3primary
+                    : Appearance.colors.colSurfaceContainer
+                Behavior on color {
+                    animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                }
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: "edit"
+                    iconSize: Appearance.font.pixelSize.large
+                    color: root.editMode
+                        ? Appearance.m3colors.m3onPrimary
+                        : Appearance.m3colors.m3onSurfaceVariant
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.editMode = !root.editMode
                 }
             }
         }

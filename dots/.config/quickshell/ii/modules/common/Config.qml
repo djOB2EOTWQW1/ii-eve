@@ -501,6 +501,7 @@ Singleton {
                 property bool splitButtons: false
                 property bool useMouseSymbol: false
                 property bool useFnSymbol: false
+                property bool allowEditing: true
                 property JsonObject visibleTabs: JsonObject {
                     property bool timetable: true
                     property bool keybinds: true
