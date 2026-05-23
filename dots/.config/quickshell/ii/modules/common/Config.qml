@@ -502,7 +502,7 @@ Singleton {
                 property bool useMouseSymbol: false
                 property bool useFnSymbol: false
                 property bool allowEditing: true
-                property var categoryOrder: []
+                property string categoryOrder: ""
                 property JsonObject visibleTabs: JsonObject {
                     property bool timetable: true
                     property bool keybinds: true

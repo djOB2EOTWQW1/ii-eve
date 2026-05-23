@@ -92,7 +92,8 @@ Item {
 
     readonly property var orderedCategories: {
         const all = HyprlandKeybinds.keybindCategories;
-        const saved = Config.options.cheatsheet.categoryOrder || [];
+        const raw = Config.options.cheatsheet.categoryOrder || "";
+        const saved = raw.length > 0 ? raw.split(",") : [];
         const result = [];
         for (const name of saved) {
             if (all.includes(name)) result.push(name);
@@ -113,7 +114,7 @@ Item {
             const tmp = current[i];
             current[i] = current[j];
             current[j] = tmp;
-            Config.options.cheatsheet.categoryOrder = current;
+            Config.options.cheatsheet.categoryOrder = current.join(",");
         });
     }
 
