@@ -30,14 +30,14 @@ Item {
         ? KeybindsEditor.detectConflict(normalizedCombo, root.mode === "edit" ? root.originalCombo : "")
         : null
     readonly property bool comboInvalid: inputCombo.length > 0 && !normalizedCombo
-    readonly property bool descRequired: inputDescription.length > 0
+    readonly property bool descFilled: inputDescription.length > 0
     readonly property bool commandRequired: root.mode !== "add" || inputCommand.length > 0
     readonly property bool hasChanges: root.mode === "add"
         || normalizedCombo !== KeybindsEditor.normalizeCombo(originalCombo)
         || inputCategory.trim() !== originalCategory
         || inputDescription.trim() !== originalDescription
     readonly property bool canSave:
-        !!normalizedCombo && !conflict && descRequired && commandRequired && hasChanges
+        !!normalizedCombo && !conflict && descFilled && commandRequired && hasChanges
 
     signal canceled()
     signal saved(var payload)
@@ -54,6 +54,12 @@ Item {
         root.inputCategory = root.originalCategory || root.presetCategory;
         root.inputDescription = root.originalDescription;
         root.inputCommand = "";
+
+        if (HyprlandKeybinds.keybindCategories.length === 0 && root.mode === "add") {
+            console.warn("[KeybindEditDialog] Categories not loaded yet, refusing to open in add mode");
+            root.canceled();
+            return;
+        }
 
         const cats = HyprlandKeybinds.keybindCategories;
         const idx = cats.indexOf(root.inputCategory);
@@ -104,7 +110,7 @@ Item {
                 Layout.fillWidth: true
                 StyledText {
                     Layout.fillWidth: true
-                    text: root.mode === "edit" ? "Edit keybind" : "Add keybind"
+                    text: root.mode === "edit" ? Translation.tr("Edit keybind") : Translation.tr("Add keybind")
                     font.pixelSize: Appearance.font.pixelSize.large
                     font.weight: Font.DemiBold
                     color: Appearance.colors.colOnLayer0
@@ -128,7 +134,7 @@ Item {
             }
 
             StyledText {
-                text: "Combination"
+                text: Translation.tr("Combination")
                 font.pixelSize: Appearance.font.pixelSize.small
                 color: Appearance.m3colors.m3onSurfaceVariant
             }
@@ -170,12 +176,12 @@ Item {
                 font.pixelSize: Appearance.font.pixelSize.smaller
                 color: Appearance.m3colors.m3error
                 text: root.conflict
-                    ? `⚠ Conflict with: ${root.conflict.description}`
-                    : "⚠ Invalid combination"
+                    ? Translation.tr("⚠ Conflict with: ") + root.conflict.description
+                    : Translation.tr("⚠ Invalid combination")
             }
 
             StyledText {
-                text: "Category"
+                text: Translation.tr("Category")
                 font.pixelSize: Appearance.font.pixelSize.small
                 color: Appearance.m3colors.m3onSurfaceVariant
             }
@@ -185,6 +191,7 @@ Item {
                 editable: false
                 model: HyprlandKeybinds.keybindCategories
                 onCurrentTextChanged: {
+                    if (!root.visible) return;
                     if (newCategoryField.text.trim().length === 0) {
                         root.inputCategory = currentText;
                     }
@@ -202,6 +209,7 @@ Item {
                     anchors.fill: parent
                     anchors.margins: 10
                     onTextChanged: {
+                        if (!root.visible) return;
                         const t = text.trim();
                         if (t.length > 0) root.inputCategory = t;
                         else root.inputCategory = categoryField.currentText;
@@ -212,14 +220,14 @@ Item {
                     anchors.left: parent.left
                     anchors.leftMargin: 10
                     visible: newCategoryField.text.length === 0
-                    text: "Or type a new category"
+                    text: Translation.tr("Or type a new category")
                     color: Appearance.m3colors.m3onSurfaceVariant
                     font.pixelSize: Appearance.font.pixelSize.smaller
                 }
             }
 
             StyledText {
-                text: "Description"
+                text: Translation.tr("Description")
                 font.pixelSize: Appearance.font.pixelSize.small
                 color: Appearance.m3colors.m3onSurfaceVariant
             }
@@ -241,7 +249,7 @@ Item {
 
             StyledText {
                 visible: root.mode === "add"
-                text: "Command"
+                text: Translation.tr("Command")
                 font.pixelSize: Appearance.font.pixelSize.small
                 color: Appearance.m3colors.m3onSurfaceVariant
             }
@@ -268,8 +276,8 @@ Item {
                 font.pixelSize: Appearance.font.pixelSize.smaller
                 color: Appearance.m3colors.m3onSurfaceVariant
                 text: root.mode === "edit"
-                    ? `Source: ${root.source === "custom" ? "custom/keybinds.lua" : "hyprland/keybinds.lua"}`
-                    : "Source: custom/keybinds.lua (new)"
+                    ? Translation.tr("Source: ") + (root.source === "custom" ? "custom/keybinds.lua" : "hyprland/keybinds.lua")
+                    : Translation.tr("Source: ") + "custom/keybinds.lua (new)"
             }
 
             RowLayout {
@@ -277,11 +285,11 @@ Item {
                 Layout.topMargin: 6
                 Item { Layout.fillWidth: true }
                 DialogButton {
-                    buttonText: "Cancel"
+                    buttonText: Translation.tr("Cancel")
                     onClicked: root.canceled()
                 }
                 DialogButton {
-                    buttonText: "Save"
+                    buttonText: Translation.tr("Save")
                     enabled: root.canSave
                     onClicked: {
                         if (!root.canSave) return;

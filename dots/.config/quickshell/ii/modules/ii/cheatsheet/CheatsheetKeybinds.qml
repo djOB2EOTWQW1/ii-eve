@@ -12,6 +12,14 @@ Item {
     id: root
     property real padding: 4
     property bool editMode: false
+    onEditModeChanged: if (editMode && !Config.options.cheatsheet.allowEditing) editMode = false;
+
+    Connections {
+        target: Config.options.cheatsheet
+        function onAllowEditingChanged() {
+            if (!Config.options.cheatsheet.allowEditing) root.editMode = false;
+        }
+    }
     implicitWidth: QsWindow?.window?.screen.width * 0.7 ?? 0
     implicitHeight: QsWindow?.window?.screen.height * 0.7 ?? 0
 
@@ -72,7 +80,7 @@ Item {
         });
     }
 
-    function requestDelete(keyData, combo) {
+    function requestDelete(_keyData, combo) {
         const source = KeybindsEditor.findSourceFor(combo);
         if (source === "generated") return;
         KeybindsEditor.applyDelete({ source: source, combo: combo });
@@ -83,9 +91,9 @@ Item {
         function onApplyFinished(operation, result) {
             if (result.ok) {
                 keybindDialog.visible = false;
-                snackbar.show(operation === "delete" ? "Keybind deleted" : "Keybind saved");
+                snackbar.show(operation === "delete" ? Translation.tr("Keybind deleted") : Translation.tr("Keybind saved"));
             } else {
-                snackbar.show("Failed: " + (result.error || "unknown error"));
+                snackbar.show(Translation.tr("Failed: ") + (result.error || Translation.tr("unknown error")));
             }
         }
     }
