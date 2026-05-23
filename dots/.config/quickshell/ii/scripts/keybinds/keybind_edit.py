@@ -184,10 +184,53 @@ def cmd_delete(spec):
     ok(removedLines=removed)
 
 
+def lua_string_literal(s):
+    return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
+def ensure_custom_exists():
+    if CUSTOM_FILE.exists():
+        return
+    CUSTOM_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CUSTOM_FILE.write_text(CUSTOM_HEADER)
+
+
+def cmd_add(spec):
+    for k in ("combo", "command", "description", "category"):
+        if k not in spec:
+            fail(f"'{k}' required")
+    combo = spec["combo"]
+    command = spec["command"]
+    desc = f"{spec['category']}: {spec['description']}"
+
+    ensure_custom_exists()
+    # Refuse if combo already present in custom (defaults can be overridden, but custom dups not).
+    if find_lines(CUSTOM_FILE, combo):
+        fail(f"combo {combo!r} already exists in {CUSTOM_FILE.name}")
+
+    text = CUSTOM_FILE.read_text()
+    if text and not text.endswith("\n"):
+        text += "\n"
+    line = (
+        f"hl.bind({lua_string_literal(combo)}, "
+        f"hl.dsp.exec_cmd({lua_string_literal(command)}), "
+        f"{{ description = {lua_string_literal(desc)} }})\n"
+    )
+    new_text = text + line
+
+    if CUSTOM_FILE.stat().st_size > 0:
+        backup(CUSTOM_FILE)
+    atomic_write(CUSTOM_FILE, new_text)
+
+    appended_at = len(new_text.splitlines())
+    ok(appendedAt=appended_at)
+
+
 SUBCOMMANDS = {
     "find": cmd_find,
     "edit": cmd_edit,
     "delete": cmd_delete,
+    "add": cmd_add,
 }
 
 
