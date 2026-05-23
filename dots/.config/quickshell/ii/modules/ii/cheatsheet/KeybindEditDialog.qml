@@ -32,8 +32,12 @@ Item {
     readonly property bool comboInvalid: inputCombo.length > 0 && !normalizedCombo
     readonly property bool descRequired: inputDescription.length > 0
     readonly property bool commandRequired: root.mode !== "add" || inputCommand.length > 0
+    readonly property bool hasChanges: root.mode === "add"
+        || normalizedCombo !== KeybindsEditor.normalizeCombo(originalCombo)
+        || inputCategory.trim() !== originalCategory
+        || inputDescription.trim() !== originalDescription
     readonly property bool canSave:
-        !!normalizedCombo && !conflict && descRequired && commandRequired
+        !!normalizedCombo && !conflict && descRequired && commandRequired && hasChanges
 
     signal canceled()
     signal saved(var payload)
@@ -119,7 +123,7 @@ Item {
                 Layout.fillWidth: true
                 implicitHeight: 40
                 radius: Appearance.rounding.small
-                color: Appearance.colors.colSurfaceContainerLowest
+                color: Appearance.colors.colSurfaceContainer
                 border.width: 1
                 border.color: root.comboInvalid || root.conflict
                     ? Appearance.m3colors.m3error
@@ -180,7 +184,7 @@ Item {
                 Layout.fillWidth: true
                 implicitHeight: 40
                 radius: Appearance.rounding.small
-                color: Appearance.colors.colSurfaceContainerLowest
+                color: Appearance.colors.colSurfaceContainer
                 border.width: 1
                 border.color: Appearance.colors.colOutlineVariant
                 StyledTextInput {
@@ -203,7 +207,7 @@ Item {
                 Layout.fillWidth: true
                 implicitHeight: 40
                 radius: Appearance.rounding.small
-                color: Appearance.colors.colSurfaceContainerLowest
+                color: Appearance.colors.colSurfaceContainer
                 border.width: 1
                 border.color: Appearance.colors.colOutlineVariant
                 StyledTextInput {
