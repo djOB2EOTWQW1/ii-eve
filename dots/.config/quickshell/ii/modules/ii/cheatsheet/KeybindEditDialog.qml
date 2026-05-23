@@ -55,6 +55,11 @@ Item {
         root.inputDescription = root.originalDescription;
         root.inputCommand = "";
 
+        const cats = HyprlandKeybinds.keybindCategories;
+        const idx = cats.indexOf(root.inputCategory);
+        categoryField.currentIndex = idx >= 0 ? idx : 0;
+        if (idx < 0 && cats.length > 0) root.inputCategory = cats[0];
+
         root.visible = true;
         comboField.forceActiveFocus();
     }
@@ -67,7 +72,6 @@ Item {
         MouseArea {
             anchors.fill: parent
             preventStealing: true
-            onClicked: root.canceled()
         }
     }
 
@@ -169,10 +173,9 @@ Item {
             StyledComboBox {
                 id: categoryField
                 Layout.fillWidth: true
-                editable: true
+                editable: false
                 model: HyprlandKeybinds.keybindCategories
-                editText: root.inputCategory
-                onEditTextChanged: root.inputCategory = editText
+                onCurrentTextChanged: root.inputCategory = currentText
             }
 
             StyledText {

@@ -174,6 +174,43 @@ Rectangle {
                 elide: Text.ElideRight
                 text: root.isCategorized ? root.categoryName : "Uncategorized"
             }
+
+            Row {
+                visible: root.editMode && root.isCategorized
+                spacing: 2
+                Rectangle {
+                    width: 24; height: 24; radius: Appearance.rounding.full
+                    color: upArea.containsMouse ? Appearance.colors.colLayer1Hover : "transparent"
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "arrow_upward"; iconSize: 16
+                        color: Appearance.m3colors.m3onSurfaceVariant
+                    }
+                    MouseArea {
+                        id: upArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.cheatsheet?.moveCategory(root.categoryName, -1)
+                    }
+                }
+                Rectangle {
+                    width: 24; height: 24; radius: Appearance.rounding.full
+                    color: downArea.containsMouse ? Appearance.colors.colLayer1Hover : "transparent"
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "arrow_downward"; iconSize: 16
+                        color: Appearance.m3colors.m3onSurfaceVariant
+                    }
+                    MouseArea {
+                        id: downArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.cheatsheet?.moveCategory(root.categoryName, 1)
+                    }
+                }
+            }
         }
 
         Item { Layout.preferredHeight: 4 }

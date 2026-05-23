@@ -90,6 +90,32 @@ Item {
         }
     }
 
+    readonly property var orderedCategories: {
+        const all = HyprlandKeybinds.keybindCategories;
+        const saved = Config.options.cheatsheet.categoryOrder || [];
+        const result = [];
+        for (const name of saved) {
+            if (all.includes(name)) result.push(name);
+        }
+        for (const name of all) {
+            if (!result.includes(name)) result.push(name);
+        }
+        return result;
+    }
+
+    function moveCategory(name, delta) {
+        const all = HyprlandKeybinds.keybindCategories;
+        const current = root.orderedCategories.slice();
+        const i = current.indexOf(name);
+        if (i < 0) return;
+        const j = i + delta;
+        if (j < 0 || j >= current.length) return;
+        const tmp = current[i];
+        current[i] = current[j];
+        current[j] = tmp;
+        Config.options.cheatsheet.categoryOrder = current;
+    }
+
     readonly property int matchCount: {
         if (root.normalizedQuery === "") return -1;
         let n = 0;
@@ -249,7 +275,7 @@ Item {
                         }
                     }
                     Repeater {
-                        model: [...HyprlandKeybinds.keybindCategories, ""]
+                        model: [...root.orderedCategories, ""]
                         delegate: CheatsheetKeybindsCategory {
                             required property var modelData
                             categoryName: modelData
