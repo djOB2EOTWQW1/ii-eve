@@ -57,8 +57,17 @@ Item {
 
         const cats = HyprlandKeybinds.keybindCategories;
         const idx = cats.indexOf(root.inputCategory);
-        categoryField.currentIndex = idx >= 0 ? idx : 0;
-        if (idx < 0 && cats.length > 0) root.inputCategory = cats[0];
+        if (idx >= 0) {
+            newCategoryField.text = "";
+            categoryField.currentIndex = idx;
+        } else if (root.inputCategory.length > 0) {
+            newCategoryField.text = root.inputCategory;
+            categoryField.currentIndex = 0;
+        } else {
+            newCategoryField.text = "";
+            categoryField.currentIndex = 0;
+            if (cats.length > 0) root.inputCategory = cats[0];
+        }
 
         root.visible = true;
         comboField.forceActiveFocus();
@@ -175,7 +184,38 @@ Item {
                 Layout.fillWidth: true
                 editable: false
                 model: HyprlandKeybinds.keybindCategories
-                onCurrentTextChanged: root.inputCategory = currentText
+                onCurrentTextChanged: {
+                    if (newCategoryField.text.trim().length === 0) {
+                        root.inputCategory = currentText;
+                    }
+                }
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 36
+                radius: Appearance.rounding.small
+                color: Appearance.colors.colSurfaceContainer
+                border.width: 1
+                border.color: Appearance.colors.colOutlineVariant
+                StyledTextInput {
+                    id: newCategoryField
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    onTextChanged: {
+                        const t = text.trim();
+                        if (t.length > 0) root.inputCategory = t;
+                        else root.inputCategory = categoryField.currentText;
+                    }
+                }
+                StyledText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
+                    visible: newCategoryField.text.length === 0
+                    text: "Or type a new category"
+                    color: Appearance.m3colors.m3onSurfaceVariant
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                }
             }
 
             StyledText {
