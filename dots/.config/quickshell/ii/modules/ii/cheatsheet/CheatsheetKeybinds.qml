@@ -316,8 +316,42 @@ Item {
         }
     }
 
-    Item {
+    Rectangle {
         id: snackbar
-        function show(_msg) { /* implemented in Task 12 */ }
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 24
+        radius: Appearance.rounding.small
+        color: Appearance.m3colors.m3inverseSurface
+        implicitWidth: snackText.implicitWidth + 32
+        implicitHeight: snackText.implicitHeight + 20
+        opacity: 0
+        visible: opacity > 0
+
+        property string message: ""
+
+        function show(msg) {
+            snackbar.message = msg;
+            snackbar.opacity = 1;
+            hideTimer.restart();
+        }
+
+        Behavior on opacity {
+            animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+        }
+
+        StyledText {
+            id: snackText
+            anchors.centerIn: parent
+            text: snackbar.message
+            color: Appearance.m3colors.m3inverseOnSurface
+            font.pixelSize: Appearance.font.pixelSize.small
+        }
+
+        Timer {
+            id: hideTimer
+            interval: 3000
+            onTriggered: snackbar.opacity = 0
+        }
     }
 }
