@@ -115,13 +115,19 @@ Rectangle {
         const tokens = root.modMaskToStringList(bind.modmask)
             .map(m => m.toUpperCase());
         const key = bind.key;
-        const luaKey = ({
+        const lk = key.toLowerCase();
+        const table = ({
             "space": "Space", "minus": "Minus", "equal": "Equal", "slash": "Slash",
             "period": "Period", "semicolon": "Semicolon", "apostrophe": "Apostrophe",
             "bracketleft": "BracketLeft", "bracketright": "BracketRight",
             "backslash": "Backslash", "return": "Return", "backspace": "BackSpace",
             "tab": "Tab", "escape": "Escape", "delete": "Delete", "print": "Print",
-        })[key.toLowerCase()] ?? (key.length ? key[0].toUpperCase() + key.slice(1).toLowerCase() : key);
+        });
+        let luaKey = table[lk];
+        if (!luaKey) {
+            if (/^mouse[:_]/.test(lk)) luaKey = lk;
+            else luaKey = key.length ? key[0].toUpperCase() + key.slice(1).toLowerCase() : key;
+        }
         return [...tokens, luaKey].join(" + ");
     }
 

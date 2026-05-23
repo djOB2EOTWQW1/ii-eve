@@ -154,7 +154,9 @@ Singleton {
         if (m & (1 << 6)) mods.push("SUPER");
         if (m & (1 << 0)) mods.push("SHIFT");
         if (m & (1 << 3)) mods.push("ALT");
-        const k = root.keyHyprctlToLua[bind.key.toLowerCase()] || root._titleCase(bind.key);
+        const lk = bind.key.toLowerCase();
+        let k = root.keyHyprctlToLua[lk];
+        if (!k) k = /^mouse[:_]/.test(lk) ? lk : root._titleCase(bind.key);
         return [...mods, k].join(" + ");
     }
 
