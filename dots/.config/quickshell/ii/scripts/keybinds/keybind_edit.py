@@ -59,6 +59,19 @@ def find_lines(path, combo):
     return out
 
 
+DESC_RE = re.compile(r'(description\s*=\s*)"((?:[^"\\]|\\.)*)"')
+
+
+def rewrite_description(line, full_desc):
+    # full_desc is the already-composed "Category: text" string.
+    escaped = full_desc.replace('\\', '\\\\').replace('"', '\\"')
+
+    def sub(m):
+        return f'{m.group(1)}"{escaped}"'
+
+    return DESC_RE.sub(sub, line, count=1)
+
+
 def sweep_backups():
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     by_stem = {}
@@ -110,8 +123,43 @@ def cmd_find(spec):
     ok(source="generated", occurrences=0)
 
 
+def cmd_edit(spec):
+    for k in ("source", "oldCombo", "newCombo"):
+        if k not in spec:
+            fail(f"'{k}' required")
+    path = source_path(spec["source"])
+    if not path.exists():
+        fail(f"source file does not exist: {path}")
+    old_combo = spec["oldCombo"]
+    new_combo = spec["newCombo"]
+    desc = spec.get("description")
+    cat = spec.get("category")
+
+    rx_old = combo_re(old_combo)
+    quote_old = f'hl.bind("{old_combo}"'
+    quote_new = f'hl.bind("{new_combo}"'
+
+    lines = path.read_text().splitlines(keepends=True)
+    changed = []
+    for i, line in enumerate(lines):
+        if rx_old.search(line):
+            new_line = line.replace(quote_old, quote_new, 1)
+            if desc is not None and cat is not None and DESC_RE.search(new_line):
+                new_line = rewrite_description(new_line, f"{cat}: {desc}")
+            lines[i] = new_line
+            changed.append(i + 1)
+
+    if not changed:
+        fail(f"no line matched combo {old_combo!r} in {path}")
+
+    backup(path)
+    atomic_write(path, "".join(lines))
+    ok(changedLines=changed)
+
+
 SUBCOMMANDS = {
     "find": cmd_find,
+    "edit": cmd_edit,
 }
 
 
