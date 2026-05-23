@@ -12,7 +12,7 @@ import Quickshell.Hyprland
 Singleton {
     id: root
 
-    readonly property string _configDir: FileUtils.trimFileProtocol(Directories.config)
+    readonly property string _configDir: FileUtils.trimFileProtocol(Directories.config).replace(/\/+$/, "")
     readonly property string scriptPath: _configDir + "/quickshell/ii/scripts/keybinds/keybind_edit.py"
     readonly property string defaultFile: _configDir + "/hypr/hyprland/keybinds.lua"
     readonly property string customFile: _configDir + "/hypr/custom/keybinds.lua"
@@ -82,8 +82,8 @@ Singleton {
                 if (key !== null) {
                     return { ok: false, error: "Only one non-modifier key allowed" };
                 }
-                if (/^code:\d+$/i.test(tok)) key = tok.toLowerCase().replace("code:", "code:");
-                else if (/^XF86/i.test(tok)) key = tok;
+                if (/^code:\d+$/i.test(tok)) key = tok.toLowerCase();
+                else if (/^XF86/i.test(tok)) key = "XF86" + tok.substring(4);
                 else if (/^mouse[:_]/i.test(tok)) key = tok.toLowerCase();
                 else key = root._titleCase(tok);
             }
@@ -156,7 +156,7 @@ Singleton {
         if (m & (1 << 6)) mods.push("SUPER");
         if (m & (1 << 0)) mods.push("SHIFT");
         if (m & (1 << 3)) mods.push("ALT");
-        const lk = bind.key.toLowerCase();
+        const lk = (bind.key || "").toLowerCase();
         let k = root.keyHyprctlToLua[lk];
         if (!k) k = /^mouse[:_]/.test(lk) ? lk : root._titleCase(bind.key);
         return [...mods, k].join(" + ");
@@ -239,6 +239,24 @@ Singleton {
         running: false
         stdout: StdioCollector {
             id: rollbackStdout
+            onStreamFinished: {
+                let rb;
+                const raw = rollbackStdout.text;
+                try {
+                    rb = JSON.parse(raw || "{}");
+                } catch (e) {
+                    rb = { ok: false, error: "rollback: bad JSON from script: " + raw };
+                }
+                if (!rb || typeof rb.ok !== "boolean") {
+                    rb = { ok: false, error: "rollback: empty or malformed script output: " + (raw || "<empty>") };
+                }
+                if (rb.ok) {
+                    Hyprland.dispatch("reload");
+                    root.applyFinished("rollback", { ok: false, error: "Reload failed, restored backup" });
+                } else {
+                    root.applyFinished("rollback", { ok: false, error: "Reload failed AND rollback failed: " + (rb.error || "unknown") });
+                }
+            }
         }
         onRunningChanged: {
             if (rollbackProc.running) {
@@ -246,13 +264,13 @@ Singleton {
                 rollbackProc.stdinEnabled = false;
             }
         }
-        onExited: {
-            Hyprland.dispatch("reload");
-            root.applyFinished("rollback", { ok: false, error: "Reload failed, restored backup" });
-        }
     }
 
     function _runScript(op, subcommand, spec) {
+        if (editor.running || rollbackProc.running || root._awaitingReload) {
+            root.applyFinished(op, { ok: false, error: "Another operation is in progress, please wait" });
+            return;
+        }
         root._pendingOp = op;
         root._pendingSubcommand = subcommand;
         root._pendingJson = JSON.stringify(spec);
