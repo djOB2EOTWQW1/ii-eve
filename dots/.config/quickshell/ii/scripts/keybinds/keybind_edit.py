@@ -226,11 +226,57 @@ def cmd_add(spec):
     ok(appendedAt=appended_at)
 
 
+def inject_description(line, full_desc):
+    # If line already has a description, replace it.
+    if DESC_RE.search(line):
+        return rewrite_description(line, full_desc)
+    # Else find the last ')' that closes the hl.bind(...) call (assumed single-line)
+    # and insert ", { description = "<full_desc>" }" before it.
+    stripped = line.rstrip("\n")
+    if not stripped.endswith(")"):
+        return None  # cannot safely edit this line
+    escaped = full_desc.replace('\\', '\\\\').replace('"', '\\"')
+    insertion = f', {{ description = "{escaped}" }}'
+    suffix = "\n" if line.endswith("\n") else ""
+    return stripped[:-1] + insertion + ")" + suffix
+
+
+def cmd_set_description(spec):
+    for k in ("source", "combo", "description", "category"):
+        if k not in spec:
+            fail(f"'{k}' required")
+    path = source_path(spec["source"])
+    if not path.exists():
+        fail(f"source file does not exist: {path}")
+    combo = spec["combo"]
+    full_desc = f"{spec['category']}: {spec['description']}"
+
+    rx = combo_re(combo)
+    lines = path.read_text().splitlines(keepends=True)
+    changed = 0
+    for i, line in enumerate(lines):
+        if rx.search(line):
+            new_line = inject_description(line, full_desc)
+            if new_line is None:
+                fail(f"cannot edit multi-line hl.bind on line {i + 1}")
+            if new_line != line:
+                lines[i] = new_line
+                changed += 1
+
+    if changed == 0:
+        fail(f"no editable line matched combo {combo!r} in {path}")
+
+    backup(path)
+    atomic_write(path, "".join(lines))
+    ok(changedLines=changed)
+
+
 SUBCOMMANDS = {
     "find": cmd_find,
     "edit": cmd_edit,
     "delete": cmd_delete,
     "add": cmd_add,
+    "set-description": cmd_set_description,
 }
 
 
