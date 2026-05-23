@@ -157,9 +157,37 @@ def cmd_edit(spec):
     ok(changedLines=changed)
 
 
+def cmd_delete(spec):
+    for k in ("source", "combo"):
+        if k not in spec:
+            fail(f"'{k}' required")
+    path = source_path(spec["source"])
+    if not path.exists():
+        fail(f"source file does not exist: {path}")
+    combo = spec["combo"]
+    rx = combo_re(combo)
+
+    raw = path.read_text().splitlines(keepends=True)
+    kept = []
+    removed = []
+    for i, line in enumerate(raw, start=1):
+        if rx.search(line):
+            removed.append(i)
+        else:
+            kept.append(line)
+
+    if not removed:
+        fail(f"no line matched combo {combo!r} in {path}")
+
+    backup(path)
+    atomic_write(path, "".join(kept))
+    ok(removedLines=removed)
+
+
 SUBCOMMANDS = {
     "find": cmd_find,
     "edit": cmd_edit,
+    "delete": cmd_delete,
 }
 
 
