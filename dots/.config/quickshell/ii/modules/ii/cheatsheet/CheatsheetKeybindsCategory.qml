@@ -109,6 +109,22 @@ Rectangle {
     })
     readonly property string categoryIcon: root.categoryIcons[root.categoryName] ?? "keyboard"
 
+    readonly property bool editMode: root.cheatsheet?.editMode ?? false
+
+    function comboFor(bind) {
+        const tokens = root.modMaskToStringList(bind.modmask)
+            .map(m => m.toUpperCase());
+        const key = bind.key;
+        const luaKey = ({
+            "space": "Space", "minus": "Minus", "equal": "Equal", "slash": "Slash",
+            "period": "Period", "semicolon": "Semicolon", "apostrophe": "Apostrophe",
+            "bracketleft": "BracketLeft", "bracketright": "BracketRight",
+            "backslash": "Backslash", "return": "Return", "backspace": "BackSpace",
+            "tab": "Tab", "escape": "Escape", "delete": "Delete", "print": "Print",
+        })[key.toLowerCase()] ?? (key.length ? key[0].toUpperCase() + key.slice(1).toLowerCase() : key);
+        return [...tokens, luaKey].join(" + ");
+    }
+
     function modMaskToStringList(modMask) {
         var list = [];
         if (modMask & (1 << 2)) list.push("Ctrl");
@@ -172,6 +188,10 @@ Rectangle {
         id: bindLine
         required property var keyData
         spacing: 10
+        opacity: root.editMode && !bindLine.isEditable ? 0.45 : 1
+        Behavior on opacity {
+            animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+        }
 
         readonly property var modTokens: root.modMaskToStringList(bindLine.keyData.modmask)
             .map(m => root.keySubstitutions[m] ?? m)
@@ -183,6 +203,8 @@ Rectangle {
             return root.keySubstitutions[raw] ?? root.keySubstitutions[titled] ?? titled;
         }
         readonly property var parts: bindLine.keyShown ? [...bindLine.modTokens, bindLine.keyToken] : bindLine.modTokens
+        readonly property string comboString: root.comboFor(bindLine.keyData)
+        readonly property bool isEditable: KeybindsEditor.findSourceFor(bindLine.comboString) !== "generated"
 
         Item {
             id: comboSlot
@@ -244,6 +266,52 @@ Rectangle {
                 if (!root.categoryName) return bindLine.keyData.description;
                 const regex = new RegExp("\\s*" + root.categoryName + "\\s*:\\s*");
                 return bindLine.keyData.description.replace(regex, "");
+            }
+        }
+
+        Row {
+            id: editIcons
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 4
+            visible: root.editMode && bindLine.isEditable
+            opacity: visible ? 1 : 0
+            Behavior on opacity {
+                animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+            }
+
+            Rectangle {
+                width: 28; height: 28; radius: Appearance.rounding.full
+                color: editArea.containsMouse ? Appearance.colors.colLayer1Hover : "transparent"
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: "edit"; iconSize: 18
+                    color: Appearance.m3colors.m3onSurfaceVariant
+                }
+                MouseArea {
+                    id: editArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.cheatsheet?.requestEdit(bindLine.keyData, bindLine.comboString, root.categoryName)
+                }
+            }
+            Rectangle {
+                width: 28; height: 28; radius: Appearance.rounding.full
+                color: deleteArea.containsMouse ? Appearance.colors.colErrorContainer : "transparent"
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: "delete"; iconSize: 18
+                    color: deleteArea.containsMouse
+                        ? Appearance.m3colors.m3onErrorContainer
+                        : Appearance.m3colors.m3onSurfaceVariant
+                }
+                MouseArea {
+                    id: deleteArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.cheatsheet?.requestDelete(bindLine.keyData, bindLine.comboString)
+                }
             }
         }
     }
