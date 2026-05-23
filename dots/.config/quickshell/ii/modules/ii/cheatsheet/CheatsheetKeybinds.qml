@@ -48,6 +48,40 @@ Item {
         return blob.includes(q);
     }
 
+    function requestEdit(keyData, combo, category) {
+        const desc = keyData.description ?? "";
+        const idx = desc.indexOf(":");
+        const descNoCat = idx >= 0 ? desc.substring(idx + 1).trim() : desc;
+        const cat = idx >= 0 ? desc.substring(0, idx).trim() : (category ?? "");
+        const source = KeybindsEditor.findSourceFor(combo);
+        if (source === "generated") return;
+        keybindDialog.open({
+            mode: "edit",
+            combo: combo,
+            category: cat,
+            description: descNoCat,
+            source: source,
+        });
+    }
+
+    function requestDelete(keyData, combo) {
+        const source = KeybindsEditor.findSourceFor(combo);
+        if (source === "generated") return;
+        KeybindsEditor.applyDelete({ source: source, combo: combo });
+    }
+
+    Connections {
+        target: KeybindsEditor
+        function onApplyFinished(operation, result) {
+            if (result.ok) {
+                keybindDialog.visible = false;
+                snackbar.show(operation === "delete" ? "Keybind deleted" : "Keybind saved");
+            } else {
+                snackbar.show("Failed: " + (result.error || "unknown error"));
+            }
+        }
+    }
+
     readonly property int matchCount: {
         if (root.normalizedQuery === "") return -1;
         let n = 0;
@@ -239,5 +273,43 @@ Item {
                 }
             }
         }
+    }
+
+    KeybindEditDialog {
+        id: keybindDialog
+        visible: false
+        onCanceled: visible = false
+        onSaved: payload => {
+            if (payload.mode === "edit") {
+                if (payload.combo === payload.originalCombo) {
+                    KeybindsEditor.applySetDescription({
+                        source: payload.source,
+                        combo: payload.combo,
+                        description: payload.description,
+                        category: payload.category,
+                    });
+                } else {
+                    KeybindsEditor.applyEdit({
+                        source: payload.source,
+                        oldCombo: payload.originalCombo,
+                        newCombo: payload.combo,
+                        description: payload.description,
+                        category: payload.category,
+                    });
+                }
+            } else {
+                KeybindsEditor.applyAdd({
+                    combo: payload.combo,
+                    command: payload.command,
+                    description: payload.description,
+                    category: payload.category,
+                });
+            }
+        }
+    }
+
+    Item {
+        id: snackbar
+        function show(_msg) { /* implemented in Task 12 */ }
     }
 }
