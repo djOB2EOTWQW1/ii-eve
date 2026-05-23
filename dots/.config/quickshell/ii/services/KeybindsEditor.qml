@@ -172,6 +172,12 @@ Singleton {
         stdout: StdioCollector {
             id: editorStdout
         }
+        onRunningChanged: {
+            if (editor.running) {
+                editor.write(root._pendingJson);
+                editor.stdinEnabled = false;
+            }
+        }
         onExited: (exitCode, exitStatus) => {
             let result;
             try {
@@ -191,9 +197,8 @@ Singleton {
         root._pendingOp = op;
         root._pendingSubcommand = subcommand;
         root._pendingJson = JSON.stringify(spec);
+        editor.stdinEnabled = true;
         editor.running = true;
-        editor.write(root._pendingJson);
-        editor.closeStdin();
     }
 
     function applyEdit(spec) { root._runScript("edit", "edit", spec); }
