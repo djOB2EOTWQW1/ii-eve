@@ -174,27 +174,31 @@ Singleton {
         running: false
         stdout: StdioCollector {
             id: editorStdout
+            onStreamFinished: {
+                let result;
+                const raw = editorStdout.text;
+                try {
+                    result = JSON.parse(raw || "{}");
+                } catch (e) {
+                    result = { ok: false, error: "bad JSON from script: " + raw };
+                }
+                if (!result || typeof result.ok !== "boolean") {
+                    result = { ok: false, error: "empty or malformed script output: " + (raw || "<empty>") };
+                }
+                if (result.ok) {
+                    root.mutationTick++;
+                    root._awaitingReload = true;
+                    Hyprland.dispatch("reload");
+                    reloadTimeout.restart();
+                }
+                root.applyFinished(root._pendingOp, result);
+            }
         }
         onRunningChanged: {
             if (editor.running) {
                 editor.write(root._pendingJson);
                 editor.stdinEnabled = false;
             }
-        }
-        onExited: (exitCode, exitStatus) => {
-            let result;
-            try {
-                result = JSON.parse(editorStdout.text || "{}");
-            } catch (e) {
-                result = { ok: false, error: "bad JSON from script: " + editorStdout.text };
-            }
-            if (result.ok) {
-                root.mutationTick++;
-                root._awaitingReload = true;
-                Hyprland.dispatch("reload");
-                reloadTimeout.restart();
-            }
-            root.applyFinished(root._pendingOp, result);
         }
     }
 
