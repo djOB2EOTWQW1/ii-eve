@@ -91,7 +91,8 @@ def backup(path):
     sweep_backups()
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    bak = BACKUP_DIR / f"{path.name}.{ts}.bak"
+    prefix = path.parent.name
+    bak = BACKUP_DIR / f"{prefix}-{path.name}.{ts}.bak"
     bak.write_bytes(path.read_bytes())
 
 
@@ -203,10 +204,11 @@ def cmd_add(spec):
     command = spec["command"]
     desc = f"{spec['category']}: {spec['description']}"
 
+    pre_existed = CUSTOM_FILE.exists() and CUSTOM_FILE.stat().st_size > 0
     ensure_custom_exists()
     # Refuse if combo already present in custom (defaults can be overridden, but custom dups not).
     if find_lines(CUSTOM_FILE, combo):
-        fail(f"combo {combo!r} already exists in {CUSTOM_FILE.name}")
+        fail(f"combo {combo!r} already exists in custom/keybinds.lua")
 
     text = CUSTOM_FILE.read_text()
     if text and not text.endswith("\n"):
@@ -218,7 +220,7 @@ def cmd_add(spec):
     )
     new_text = text + line
 
-    if CUSTOM_FILE.stat().st_size > 0:
+    if pre_existed:
         backup(CUSTOM_FILE)
     atomic_write(CUSTOM_FILE, new_text)
 
@@ -226,18 +228,35 @@ def cmd_add(spec):
     ok(appendedAt=appended_at)
 
 
+# Matches the final options block: `, { ... }` immediately before the closing `)`.
+# Captures the inner content so we can append a description key.
+OPTIONS_BLOCK_RE = re.compile(r',\s*\{([^{}]*)\}\s*\)\s*$')
+
+
 def inject_description(line, full_desc):
-    # If line already has a description, replace it.
+    # If the line already has a description anywhere, just replace it.
     if DESC_RE.search(line):
         return rewrite_description(line, full_desc)
-    # Else find the last ')' that closes the hl.bind(...) call (assumed single-line)
-    # and insert ", { description = "<full_desc>" }" before it.
+
     stripped = line.rstrip("\n")
-    if not stripped.endswith(")"):
-        return None  # cannot safely edit this line
-    escaped = full_desc.replace('\\', '\\\\').replace('"', '\\"')
-    insertion = f', {{ description = "{escaped}" }}'
     suffix = "\n" if line.endswith("\n") else ""
+    escaped = full_desc.replace('\\', '\\\\').replace('"', '\\"')
+
+    # Case 1: line has an existing { ... } options block at the end → inject inside it.
+    m = OPTIONS_BLOCK_RE.search(stripped)
+    if m:
+        inner = m.group(1).strip()
+        if inner:
+            new_inner = f'{inner}, description = "{escaped}"'
+        else:
+            new_inner = f'description = "{escaped}"'
+        new_block = ', { ' + new_inner + ' })'
+        return stripped[:m.start()] + new_block + suffix
+
+    # Case 2: line ends with `)` but no options block → add a fresh block.
+    if not stripped.endswith(")"):
+        return None
+    insertion = f', {{ description = "{escaped}" }}'
     return stripped[:-1] + insertion + ")" + suffix
 
 
@@ -275,7 +294,8 @@ def cmd_rollback(spec):
     if "filename" not in spec:
         fail("'filename' required (relative to $HOME)")
     target = HOME / spec["filename"]
-    candidates = sorted(BACKUP_DIR.glob(f"{target.name}.*.bak"),
+    prefix = target.parent.name
+    candidates = sorted(BACKUP_DIR.glob(f"{prefix}-{target.name}.*.bak"),
                         key=lambda p: p.stat().st_mtime, reverse=True)
     if not candidates:
         fail("no backup available")
