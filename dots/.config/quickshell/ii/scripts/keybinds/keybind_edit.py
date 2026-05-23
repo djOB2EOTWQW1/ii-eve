@@ -279,7 +279,7 @@ def cmd_rollback(spec):
                         key=lambda p: p.stat().st_mtime, reverse=True)
     if not candidates:
         fail("no backup available")
-    target.write_bytes(candidates[0].read_bytes())
+    atomic_write(target, candidates[0].read_text())
     ok(restoredFrom=str(candidates[0]))
 
 
