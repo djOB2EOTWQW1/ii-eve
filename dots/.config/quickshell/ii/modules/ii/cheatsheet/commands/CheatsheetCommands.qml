@@ -500,6 +500,8 @@ Item {
                             required property int idx
                             width: cardGrid.cellWidth
                             height: cardGrid.cellHeight
+                            opacity: 1
+                            scale: 1
 
                             readonly property var _item: CommandsService.commandsModel.get(cardDelegate.idx)
 

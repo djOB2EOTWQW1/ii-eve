@@ -700,6 +700,10 @@ MouseArea {
                 required property string key
                 width: appGrid.cellWidth
                 height: appGrid.cellHeight
+                // Explicit bindings so an interrupted add/remove transition
+                // can't leave the delegate stuck at a fractional opacity/scale.
+                opacity: 1
+                scale: 1
                 launcher: root
                 innerLayer: innerLayerRect
                 modelData: root._resolveKey(key)
