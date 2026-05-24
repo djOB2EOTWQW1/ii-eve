@@ -133,7 +133,37 @@ Item {
         onTriggered: root.searchText = filterField.text
     }
 
-    Component.onCompleted: root.refreshTags()
+    // Diff-syncs the visible ListModel against filteredIndices so GridView
+    // fires add/remove/displaced transitions for incremental filter changes.
+    ListModel { id: visibleCommands }
+    function _syncVisibleCommands() {
+        const want = root.filteredIndices;
+        const wantSet = {};
+        for (let i = 0; i < want.length; i++) wantSet[want[i]] = true;
+        for (let i = visibleCommands.count - 1; i >= 0; i--) {
+            if (!wantSet[visibleCommands.get(i).idx]) visibleCommands.remove(i, 1);
+        }
+        for (let i = 0; i < want.length; i++) {
+            const w = want[i];
+            if (i >= visibleCommands.count) {
+                visibleCommands.append({ idx: w });
+                continue;
+            }
+            if (visibleCommands.get(i).idx === w) continue;
+            let foundAt = -1;
+            for (let j = i + 1; j < visibleCommands.count; j++) {
+                if (visibleCommands.get(j).idx === w) { foundAt = j; break; }
+            }
+            if (foundAt >= 0) visibleCommands.move(foundAt, i, 1);
+            else visibleCommands.insert(i, { idx: w });
+        }
+    }
+    onFilteredIndicesChanged: Qt.callLater(_syncVisibleCommands)
+
+    Component.onCompleted: {
+        root.refreshTags();
+        root._syncVisibleCommands();
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -439,16 +469,39 @@ Item {
                         Layout.rightMargin: 16
                         cellWidth: Math.max(100, width / 2)
                         cellHeight: 180
-                        model: root.filteredIndices
+                        model: visibleCommands
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
 
+                        add: Transition {
+                            ParallelAnimation {
+                                NumberAnimation { properties: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.OutCubic }
+                                NumberAnimation { properties: "scale"; from: 0.85; to: 1; duration: 220; easing.type: Easing.OutCubic }
+                            }
+                        }
+                        remove: Transition {
+                            ParallelAnimation {
+                                NumberAnimation { properties: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.InCubic }
+                                NumberAnimation { properties: "scale"; from: 1; to: 0.85; duration: 160; easing.type: Easing.InCubic }
+                            }
+                        }
+                        displaced: Transition {
+                            NumberAnimation { properties: "x,y"; duration: 220; easing.type: Easing.OutCubic }
+                        }
+                        move: Transition {
+                            NumberAnimation { properties: "x,y"; duration: 220; easing.type: Easing.OutCubic }
+                        }
+                        moveDisplaced: Transition {
+                            NumberAnimation { properties: "x,y"; duration: 220; easing.type: Easing.OutCubic }
+                        }
+
                         delegate: Item {
                             id: cardDelegate
+                            required property int idx
                             width: cardGrid.cellWidth
                             height: cardGrid.cellHeight
 
-                            readonly property var _item: CommandsService.commandsModel.get(modelData)
+                            readonly property var _item: CommandsService.commandsModel.get(cardDelegate.idx)
 
                             CommandCard {
                                 id: commandCard

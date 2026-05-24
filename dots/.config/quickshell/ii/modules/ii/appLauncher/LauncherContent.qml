@@ -76,9 +76,8 @@ MouseArea {
         root.vimiumTyped = ""
     }
 
-    // Wrapper cache keyed by entry index. Returning the same JS object across
-    // typed-search updates lets GridView's add/remove/displaced transitions
-    // recognise survivors and animate only the items that actually changed.
+    // Wrapper cache keyed by entry index. Lets _resolveKey return the same JS
+    // object across rebuilds so the delegate's `modelData` reference is stable.
     property var _entryWrapperCache: ({})
     function _entryWrapper(i) {
         const e = CustomApps.entries[i]
@@ -90,6 +89,61 @@ MouseArea {
         }
         return w
     }
+
+    function _itemKey(it) {
+        if (!it) return ""
+        if (it.appIndices) return "f:" + (it.id || "")
+        return "a:" + (it._originalIndex ?? -1)
+    }
+    function _resolveKey(key) {
+        if (!key) return null
+        if (key.charAt(0) === "f") {
+            const id = key.substring(2)
+            const folders = CustomApps.folders || []
+            for (let i = 0; i < folders.length; i++) {
+                if (folders[i].id === id) return folders[i]
+            }
+            return null
+        }
+        if (key.charAt(0) === "a") {
+            const idx = parseInt(key.substring(2))
+            return root._entryWrapper(idx)
+        }
+        return null
+    }
+
+    function _syncVisibleModel() {
+        const want = root.gridModel
+        const wantKeys = []
+        for (let i = 0; i < want.length; i++) wantKeys.push(root._itemKey(want[i]))
+        const wantSet = {}
+        for (let i = 0; i < wantKeys.length; i++) wantSet[wantKeys[i]] = true
+
+        // Remove items no longer in the desired set (back-to-front to keep indices valid).
+        for (let i = visibleModel.count - 1; i >= 0; i--) {
+            if (!wantSet[visibleModel.get(i).key]) visibleModel.remove(i, 1)
+        }
+        // Walk the desired list, moving or inserting to match its order.
+        for (let i = 0; i < wantKeys.length; i++) {
+            const wantKey = wantKeys[i]
+            if (i >= visibleModel.count) {
+                visibleModel.append({ key: wantKey })
+                continue
+            }
+            if (visibleModel.get(i).key === wantKey) continue
+            let foundAt = -1
+            for (let j = i + 1; j < visibleModel.count; j++) {
+                if (visibleModel.get(j).key === wantKey) { foundAt = j; break }
+            }
+            if (foundAt >= 0) visibleModel.move(foundAt, i, 1)
+            else visibleModel.insert(i, { key: wantKey })
+        }
+    }
+
+    onGridModelChanged: Qt.callLater(_syncVisibleModel)
+    Component.onCompleted: _syncVisibleModel()
+
+    ListModel { id: visibleModel }
 
     // Folder objects pass through unwrapped — the delegate identifies them by
     // the presence of `appIndices` (folders have it, root entries don't).
@@ -582,7 +636,7 @@ MouseArea {
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: StyledScrollBar {}
 
-            model: root.gridModel
+            model: visibleModel
 
             move: Transition {
                 NumberAnimation {
@@ -643,10 +697,12 @@ MouseArea {
             }
 
             delegate: AppGridDelegate {
+                required property string key
                 width: appGrid.cellWidth
                 height: appGrid.cellHeight
                 launcher: root
                 innerLayer: innerLayerRect
+                modelData: root._resolveKey(key)
                 onOpenFolderRequested: (folder) => folderViewer.open(folder)
                 onContextMenuForAppRequested: (entryIndex, launcherX, launcherY) => {
                     contextMenu.selectedAppIndex = entryIndex
