@@ -61,9 +61,31 @@ Item {
         return result;
     }
 
+    focus: true
+    Component.onCompleted: filterField.forceActiveFocus()
     onFocusChanged: focus => {
         if (focus)
             filterField.forceActiveFocus();
+    }
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Escape) {
+            root.searchText = "";
+            filterField.text = "";
+            event.accepted = true;
+            return;
+        }
+        if (event.key === Qt.Key_Slash) {
+            filterField.forceActiveFocus();
+            event.accepted = true;
+            return;
+        }
+        const t = event.text;
+        const blocked = event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier);
+        if (t.length === 1 && t.charCodeAt(0) >= 0x20 && !blocked) {
+            filterField.forceActiveFocus();
+            filterField.text += t;
+            event.accepted = true;
+        }
     }
 
     function refreshTags() {
