@@ -139,23 +139,24 @@ Item {
     readonly property bool isEmpty: root.matchCount === 0
 
     focus: true
-    Component.onCompleted: searchField.forceActiveFocus()
+    Component.onCompleted: filterField.forceActiveFocus()
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Escape) {
             CheatsheetSearch.query = "";
+            filterField.text = "";
             event.accepted = true;
             return;
         }
         if (event.key === Qt.Key_Slash) {
-            searchField.forceActiveFocus();
+            filterField.forceActiveFocus();
             event.accepted = true;
             return;
         }
         const t = event.text;
         const blocked = event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier);
         if (t.length === 1 && t.charCodeAt(0) >= 0x20 && !blocked) {
-            searchField.forceActiveFocus();
-            searchInput.text += t;
+            filterField.forceActiveFocus();
+            filterField.text += t;
             event.accepted = true;
         }
     }
@@ -163,97 +164,8 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Appearance.rounding.small
+        anchors.bottomMargin: 90
         spacing: 14
-
-        RowLayout {
-            Layout.alignment: Qt.AlignHCenter
-            spacing: 10
-
-            // Pill-shaped search bar with a leading search glyph — matches the look of the screenshot.
-            Item {
-                id: searchField
-                Layout.preferredWidth: 460
-                Layout.preferredHeight: 44
-                function forceActiveFocus() { searchInput.forceActiveFocus(); }
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: Appearance.colors.colSurfaceContainer
-                    radius: Appearance.rounding.full
-                }
-                MaterialSymbol {
-                    id: searchIcon
-                    anchors.left: parent.left
-                    anchors.leftMargin: 18
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "search"
-                    iconSize: Appearance.font.pixelSize.large
-                    color: searchInput.activeFocus ? Appearance.m3colors.m3primary : Appearance.m3colors.m3onSurfaceVariant
-                }
-                TextInput {
-                    id: searchInput
-                    anchors.left: searchIcon.right
-                    anchors.leftMargin: 12
-                    anchors.right: parent.right
-                    anchors.rightMargin: 18
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: Appearance.colors.colOnLayer0
-                    selectionColor: Appearance.colors.colSecondaryContainer
-                    selectedTextColor: Appearance.colors.colOnSecondaryContainer
-                    font.pixelSize: Appearance.font.pixelSize.normal
-                    font.family: Appearance.font.family.main
-                    clip: true
-                    verticalAlignment: TextInput.AlignVCenter
-                    Component.onCompleted: text = CheatsheetSearch.query
-                    onTextChanged: CheatsheetSearch.query = text
-
-                    Keys.onPressed: event => {
-                        if (event.key === Qt.Key_Escape) {
-                            if (text.length > 0) text = "";
-                            else root.forceActiveFocus();
-                            event.accepted = true;
-                        }
-                    }
-
-                    StyledText {
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
-                        visible: searchInput.text.length === 0
-                        text: "Search keybinds"
-                        color: Appearance.m3colors.m3onSurfaceVariant
-                        font.pixelSize: searchInput.font.pixelSize
-                    }
-                }
-            }
-
-            // Edit-mode toggle, visible only when allowEditing is on.
-            Rectangle {
-                id: editToggle
-                visible: Config.options.cheatsheet.allowEditing
-                Layout.preferredWidth: 44
-                Layout.preferredHeight: 44
-                radius: Appearance.rounding.full
-                color: root.editMode
-                    ? Appearance.m3colors.m3primary
-                    : Appearance.colors.colSurfaceContainer
-                Behavior on color {
-                    animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
-                }
-                MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: "edit"
-                    iconSize: Appearance.font.pixelSize.large
-                    color: root.editMode
-                        ? Appearance.m3colors.m3onPrimary
-                        : Appearance.m3colors.m3onSurfaceVariant
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.editMode = !root.editMode
-                }
-            }
-        }
 
         Item {
             id: viewport
@@ -275,7 +187,6 @@ Item {
                     height: flickable.height
                     flow: Flow.TopToBottom
                     spacing: 12
-                    // Survivors glide to their repacked slots after non-matching cards fade out.
                     move: Transition {
                         NumberAnimation {
                             properties: "x,y"
@@ -315,6 +226,58 @@ Item {
                     color: Appearance.m3colors.m3onSurfaceVariant
                     text: `No keybinds match "${root.query}"`
                 }
+            }
+        }
+    }
+
+    Toolbar {
+        id: searchToolbar
+        z: 5
+        colBackground: Appearance.colors.colSecondaryContainer
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 20
+
+        ToolbarTextField {
+            id: filterField
+            placeholderText: focus ? Translation.tr("Search keybinds") : Translation.tr("Hit \"/\" to search")
+            clip: true
+            font.pixelSize: Appearance.font.pixelSize.small
+            colBackground: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.05)
+            color: Appearance.colors.colOnSecondaryContainer
+            placeholderTextColor: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.6)
+            Component.onCompleted: text = CheatsheetSearch.query
+            onTextChanged: CheatsheetSearch.query = text
+            Keys.onPressed: event => {
+                if (event.key === Qt.Key_Escape) {
+                    if (text.length > 0) text = "";
+                    else root.forceActiveFocus();
+                    event.accepted = true;
+                }
+            }
+        }
+
+        IconToolbarButton {
+            implicitWidth: height
+            onClicked: { CheatsheetSearch.query = ""; filterField.text = ""; }
+            text: "close"
+            colText: Appearance.colors.colOnSecondaryContainer
+            StyledToolTip {
+                text: Translation.tr("Clear search")
+            }
+        }
+
+        IconToolbarButton {
+            implicitWidth: height
+            visible: Config.options.cheatsheet.allowEditing
+            toggled: root.editMode
+            onClicked: root.editMode = !root.editMode
+            text: "edit"
+            colBackgroundToggled: Appearance.m3colors.m3primary
+            colBackgroundToggledHover: Appearance.colors.colPrimaryHover
+            colText: root.editMode ? Appearance.m3colors.m3onPrimary : Appearance.colors.colOnSecondaryContainer
+            StyledToolTip {
+                text: root.editMode ? Translation.tr("Exit edit mode") : Translation.tr("Edit keybinds")
             }
         }
     }
