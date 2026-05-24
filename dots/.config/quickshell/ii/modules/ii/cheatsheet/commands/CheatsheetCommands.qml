@@ -473,18 +473,6 @@ Item {
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
 
-                        add: Transition {
-                            ParallelAnimation {
-                                NumberAnimation { properties: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.OutCubic }
-                                NumberAnimation { properties: "scale"; from: 0.85; to: 1; duration: 220; easing.type: Easing.OutCubic }
-                            }
-                        }
-                        remove: Transition {
-                            ParallelAnimation {
-                                NumberAnimation { properties: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.InCubic }
-                                NumberAnimation { properties: "scale"; from: 1; to: 0.85; duration: 160; easing.type: Easing.InCubic }
-                            }
-                        }
                         displaced: Transition {
                             NumberAnimation { properties: "x,y"; duration: 220; easing.type: Easing.OutCubic }
                         }
@@ -500,8 +488,16 @@ Item {
                             required property int idx
                             width: cardGrid.cellWidth
                             height: cardGrid.cellHeight
-                            opacity: 1
-                            scale: 1
+                            property bool _appeared: false
+                            opacity: cardDelegate._appeared ? 1 : 0
+                            scale: cardDelegate._appeared ? 1 : 0.85
+                            Behavior on opacity {
+                                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                            }
+                            Behavior on scale {
+                                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                            }
+                            Component.onCompleted: cardDelegate._appeared = true
 
                             readonly property var _item: CommandsService.commandsModel.get(cardDelegate.idx)
 
