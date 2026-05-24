@@ -194,6 +194,31 @@ Item {
                     }
 
                     HelpSection {
+                        title: Translation.tr("Search")
+
+                        HelpRow {
+                            keyLabel: "/"
+                            descText: Translation.tr("Focus the search field")
+                        }
+                        HelpRow {
+                            keyLabel: Translation.tr("Type")
+                            descText: Translation.tr("Filter apps by name or path (matches inside folders too)")
+                        }
+                        HelpRow {
+                            keyLabel: "Enter"
+                            descText: Translation.tr("Launch the first matching app")
+                        }
+                        HelpRow {
+                            keyLabel: "Tab"
+                            descText: Translation.tr("Activate vimium hints over the filtered results")
+                        }
+                        HelpRow {
+                            keyLabel: "Esc"
+                            descText: Translation.tr("Clear the search; press again to close the launcher")
+                        }
+                    }
+
+                    HelpSection {
                         title: Translation.tr("Mouse & Drag")
 
                         HelpRow {
@@ -331,6 +356,10 @@ Item {
                         HelpRow {
                             keyLabel: "F"
                             descText: Translation.tr("Activate hints in current view")
+                        }
+                        HelpRow {
+                            keyLabel: "Tab"
+                            descText: Translation.tr("Activate hints from the search field (filter stays applied)")
                         }
                         HelpRow {
                             keyLabel: Translation.tr("Type letters")
