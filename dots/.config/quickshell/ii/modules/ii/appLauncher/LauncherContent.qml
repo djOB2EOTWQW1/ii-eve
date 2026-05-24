@@ -736,14 +736,18 @@ MouseArea {
             ToolbarTextField {
                 id: searchField
                 placeholderText: focus
-                    ? Translation.tr("Search apps · Enter to launch · Tab for hints")
+                    ? Translation.tr("Search · Enter to launch · Tab for hints")
                     : Translation.tr("Hit \"/\" to search")
                 clip: true
                 font.pixelSize: Appearance.font.pixelSize.small
                 colBackground: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.05)
                 color: Appearance.colors.colOnSecondaryContainer
                 placeholderTextColor: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.6)
+                // Keep Tab/Backtab from being eaten by Qt's focus traversal so
+                // our Keys handler can intercept Tab to activate vimium.
+                activeFocusOnTab: false
                 onTextChanged: root.searchText = text
+                Keys.priority: Keys.BeforeItem
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape) {
                         if (text.length > 0) text = ""
@@ -756,7 +760,7 @@ MouseArea {
                         event.accepted = true
                         return
                     }
-                    if (event.key === Qt.Key_Tab) {
+                    if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
                         root.activateVimiumFromSearch()
                         event.accepted = true
                         return
