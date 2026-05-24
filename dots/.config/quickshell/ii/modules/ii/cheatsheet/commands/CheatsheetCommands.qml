@@ -544,6 +544,17 @@ Item {
                 colBackground: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.05)
                 color: Appearance.colors.colOnSecondaryContainer
                 placeholderTextColor: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.6)
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Escape) {
+                        if (text.length > 0) {
+                            text = "";
+                            root.searchText = "";
+                        } else {
+                            root.forceActiveFocus();
+                        }
+                        event.accepted = true;
+                    }
+                }
             }
 
             IconToolbarButton {
