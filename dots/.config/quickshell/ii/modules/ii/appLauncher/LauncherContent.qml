@@ -76,6 +76,21 @@ MouseArea {
         root.vimiumTyped = ""
     }
 
+    // Wrapper cache keyed by entry index. Returning the same JS object across
+    // typed-search updates lets GridView's add/remove/displaced transitions
+    // recognise survivors and animate only the items that actually changed.
+    property var _entryWrapperCache: ({})
+    function _entryWrapper(i) {
+        const e = CustomApps.entries[i]
+        if (!e) return null
+        let w = _entryWrapperCache[i]
+        if (!w || w.name !== e.name || w.path !== e.path || w.icon !== e.icon || w.gpu !== e.gpu) {
+            w = { name: e.name, path: e.path, icon: e.icon, gpu: e.gpu, _originalIndex: i }
+            _entryWrapperCache[i] = w
+        }
+        return w
+    }
+
     // Folder objects pass through unwrapped — the delegate identifies them by
     // the presence of `appIndices` (folders have it, root entries don't).
     readonly property var gridModel: {
@@ -94,13 +109,8 @@ MouseArea {
             const name = (e.name || "").toLowerCase()
             const path = (e.path || "").toLowerCase()
             if (name.includes(q) || path.includes(q)) {
-                out.push({
-                    name: e.name,
-                    path: e.path,
-                    icon: e.icon,
-                    gpu: e.gpu,
-                    _originalIndex: i
-                })
+                const w = root._entryWrapper(i)
+                if (w) out.push(w)
             }
         }
         return out
@@ -582,6 +592,49 @@ MouseArea {
                 }
             }
             moveDisplaced: Transition {
+                NumberAnimation {
+                    properties: "x,y"
+                    duration: 220
+                    easing.type: Easing.OutCubic
+                }
+            }
+            add: Transition {
+                ParallelAnimation {
+                    NumberAnimation {
+                        properties: "opacity"
+                        from: 0
+                        to: 1
+                        duration: 220
+                        easing.type: Easing.OutCubic
+                    }
+                    NumberAnimation {
+                        properties: "scale"
+                        from: 0.85
+                        to: 1
+                        duration: 220
+                        easing.type: Easing.OutCubic
+                    }
+                }
+            }
+            remove: Transition {
+                ParallelAnimation {
+                    NumberAnimation {
+                        properties: "opacity"
+                        from: 1
+                        to: 0
+                        duration: 160
+                        easing.type: Easing.InCubic
+                    }
+                    NumberAnimation {
+                        properties: "scale"
+                        from: 1
+                        to: 0.85
+                        duration: 160
+                        easing.type: Easing.InCubic
+                    }
+                }
+            }
+            displaced: Transition {
                 NumberAnimation {
                     properties: "x,y"
                     duration: 220
