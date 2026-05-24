@@ -54,20 +54,60 @@ MouseArea {
     }
     readonly property bool searchActive: searchText.length > 0
 
-    readonly property var _fullGridModel: (CustomApps.folders || []).concat(CustomApps.rootEntries || [])
+    function launchFirstMatch() {
+        const gm = root.gridModel
+        if (!gm || gm.length === 0) return
+        const first = gm[0]
+        if (!first) return
+        if (first.appIndices) {
+            folderViewer.open(first)
+            return
+        }
+        if (root.selectionModeActive) return
+        CustomApps.launch(first)
+        GlobalStates.appLauncherOpen = false
+    }
+
+    function activateVimiumFromSearch() {
+        const gm = root.gridModel
+        if (!gm || gm.length === 0) return
+        if (root.parent) root.parent.forceActiveFocus()
+        root.vimiumActive = true
+        root.vimiumTyped = ""
+    }
+
     // Folder objects pass through unwrapped — the delegate identifies them by
     // the presence of `appIndices` (folders have it, root entries don't).
     readonly property var gridModel: {
-        const all = root._fullGridModel
         const q = (root.searchText || "").trim().toLowerCase()
-        if (q === "") return all
+        if (q === "") {
+            return (CustomApps.folders || []).concat(CustomApps.rootEntries || [])
+        }
+        // While searching, flatten the namespace: every matching app shows up
+        // regardless of its folder, plus folders whose own name matches so the
+        // user can still navigate into one.
         const out = []
-        for (let i = 0; i < all.length; i++) {
-            const it = all[i]
-            if (!it) continue
-            const name = (it.name || "").toLowerCase()
-            const path = (it.path || "").toLowerCase()
-            if (name.includes(q) || path.includes(q)) out.push(it)
+        const folders = CustomApps.folders || []
+        for (let i = 0; i < folders.length; i++) {
+            const f = folders[i]
+            if (!f) continue
+            if ((f.name || "").toLowerCase().includes(q)) out.push(f)
+        }
+        const entries = CustomApps.entries || []
+        for (let i = 0; i < entries.length; i++) {
+            const e = entries[i]
+            if (!e) continue
+            const name = (e.name || "").toLowerCase()
+            const path = (e.path || "").toLowerCase()
+            if (name.includes(q) || path.includes(q)) {
+                out.push({
+                    name: e.name,
+                    path: e.path,
+                    icon: e.icon,
+                    gpu: e.gpu,
+                    _originalIndex: i
+                })
+            }
         }
         return out
     }
@@ -592,7 +632,9 @@ MouseArea {
 
             ToolbarTextField {
                 id: searchField
-                placeholderText: focus ? Translation.tr("Search apps") : Translation.tr("Hit \"/\" to search")
+                placeholderText: focus
+                    ? Translation.tr("Search apps · Enter to launch · Tab for hints")
+                    : Translation.tr("Hit \"/\" to search")
                 clip: true
                 font.pixelSize: Appearance.font.pixelSize.small
                 colBackground: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.05)
@@ -604,6 +646,17 @@ MouseArea {
                         if (text.length > 0) text = ""
                         else if (root.parent) root.parent.forceActiveFocus()
                         event.accepted = true
+                        return
+                    }
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                        root.launchFirstMatch()
+                        event.accepted = true
+                        return
+                    }
+                    if (event.key === Qt.Key_Tab) {
+                        root.activateVimiumFromSearch()
+                        event.accepted = true
+                        return
                     }
                 }
             }
