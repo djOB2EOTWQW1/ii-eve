@@ -80,7 +80,14 @@ Scope { // Scope
                 id: focusUpgradeTimer
                 interval: 80
                 repeat: false
-                onTriggered: cheatsheetRoot._focusReady = true
+                onTriggered: {
+                    cheatsheetRoot._focusReady = true;
+                    cheatsheetRoot.focusCurrentTab();
+                }
+            }
+            function focusCurrentTab() {
+                const loader = swipeView.itemAt(swipeView.currentIndex);
+                if (loader && loader.item) loader.item.forceActiveFocus();
             }
             onVisibleChanged: {
                 if (visible) focusUpgradeTimer.start();
@@ -143,7 +150,7 @@ Scope { // Scope
 
                 RippleButton { // Close button
                     id: closeButton
-                    focus: cheatsheetRoot.visible
+                    focusPolicy: Qt.NoFocus
                     implicitWidth: 40
                     implicitHeight: 40
                     buttonRadius: Appearance.rounding.full
@@ -193,6 +200,7 @@ Scope { // Scope
                         currentIndex: Persistent.states.cheatsheet.tabIndex
                         onCurrentIndexChanged: {
                             Persistent.states.cheatsheet.tabIndex = currentIndex;
+                            if (cheatsheetRoot._focusReady) cheatsheetRoot.focusCurrentTab();
                         }
 
                         Connections {
