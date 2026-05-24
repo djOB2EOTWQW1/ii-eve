@@ -50,6 +50,7 @@ StyledPopup {
 
         RowLayout {
             Layout.fillWidth: true
+            spacing: 8
 
             GridLayout {
                 Layout.fillWidth: true

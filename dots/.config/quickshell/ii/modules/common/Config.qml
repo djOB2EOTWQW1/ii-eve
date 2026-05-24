@@ -280,6 +280,8 @@ Singleton {
                     }
                 }
                 property bool animateWallpaperChanges: true
+                property string transitionType: "radial"
+                property int wipeAngle: 0
                 property string wallpaperPath: ""
                 property string thumbnailPath: ""
                 property bool hideWhenFullscreen: true
@@ -472,6 +474,7 @@ Singleton {
                     property bool clickToShow: false
                     property bool compactPopups: false
                     property bool enableBluetoothConnectionPopup: true
+                    property bool showSwap: false
                 }
                 property JsonObject sizes: JsonObject {
                     property int height: 40 // horizontal mode
