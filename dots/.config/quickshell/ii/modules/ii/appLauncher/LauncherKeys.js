@@ -6,6 +6,7 @@
 //   onCloseSettings:       close the in-launcher settings overlay on Esc.
 //   onToggleDetach:        toggle detach on Ctrl+D.
 //   onToggleHelp:          toggle the help overlay on Ctrl+/.
+//   onFocusSearch:         focus the search field when `/` is pressed.
 
 function handleKey(event, content, options) {
     options = options || {}
@@ -24,6 +25,20 @@ function handleKey(event, content, options) {
         if (options.onToggleHelp) options.onToggleHelp()
         event.accepted = true
         return
+    }
+
+    // Plain `/` focuses the search field — only on the main launcher surface,
+    // and only when no vimium hint mode is mid-type so partial hint state
+    // isn't silently dropped.
+    if (!inSettings && !content.isFolderOpen && !content.helpOverlayShown
+        && !content.vimiumActive && !content.folderVimiumActive
+        && (event.key === Qt.Key_Slash || event.text === "/")
+        && !event.modifiers) {
+        if (options.onFocusSearch) {
+            options.onFocusSearch()
+            event.accepted = true
+            return
+        }
     }
 
     // Ctrl-modified shortcuts must be checked before vimium typing so the

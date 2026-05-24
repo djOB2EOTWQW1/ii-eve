@@ -44,9 +44,33 @@ MouseArea {
     // state to idle and the model rebuild settling.
     property bool suppressAnim: false
 
+    property string searchText: ""
+    function clearSearch() {
+        if (searchField.text.length > 0) searchField.text = ""
+        if (root.searchText.length > 0) root.searchText = ""
+    }
+    function focusSearch() {
+        searchField.forceActiveFocus()
+    }
+    readonly property bool searchActive: searchText.length > 0
+
+    readonly property var _fullGridModel: (CustomApps.folders || []).concat(CustomApps.rootEntries || [])
     // Folder objects pass through unwrapped — the delegate identifies them by
     // the presence of `appIndices` (folders have it, root entries don't).
-    readonly property var gridModel: (CustomApps.folders || []).concat(CustomApps.rootEntries || [])
+    readonly property var gridModel: {
+        const all = root._fullGridModel
+        const q = (root.searchText || "").trim().toLowerCase()
+        if (q === "") return all
+        const out = []
+        for (let i = 0; i < all.length; i++) {
+            const it = all[i]
+            if (!it) continue
+            const name = (it.name || "").toLowerCase()
+            const path = (it.path || "").toLowerCase()
+            if (name.includes(q) || path.includes(q)) out.push(it)
+        }
+        return out
+    }
 
     readonly property int gridColumns: appGrid.columns
     readonly property real gridCellWidth: appGrid.cellWidth
@@ -197,6 +221,7 @@ MouseArea {
             root.vimiumActive = false; root.vimiumTyped = ""
             root.folderVimiumActive = false; root.folderVimiumTyped = ""
             root.settingsVimiumActive = false; root.settingsVimiumTyped = ""
+            root.clearSearch()
             renameDialog.cancel()
         }
     }
@@ -476,16 +501,21 @@ MouseArea {
             visible: appGrid.count === 0 && !root.externalDragHover
 
             PagePlaceholder {
-                icon: "apps"
-                title: Translation.tr("No applications yet")
-                description: Translation.tr("Right-click anywhere to add one")
+                icon: root.searchActive ? "search_off" : "apps"
+                title: root.searchActive
+                    ? Translation.tr("No matches")
+                    : Translation.tr("No applications yet")
+                description: root.searchActive
+                    ? Translation.tr("Try a different query")
+                    : Translation.tr("Right-click anywhere to add one")
                 descriptionHorizontalAlignment: Text.AlignHCenter
             }
 
             StyledText {
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 24
+                anchors.bottomMargin: searchToolbar.visible ? searchToolbar.height + 28 : 24
                 anchors.horizontalCenter: parent.horizontalCenter
+                visible: !root.searchActive
                 text: Translation.tr("Show help: Ctrl + /")
                 font.pixelSize: Appearance.font.pixelSize.smaller
                 color: Appearance.colors.colSubtext
@@ -498,6 +528,7 @@ MouseArea {
             anchors.fill: parent
             anchors.margins: 14
             anchors.topMargin: headerBar.height + 4
+            anchors.bottomMargin: searchToolbar.visible ? searchToolbar.height + 28 : 14
             visible: count > 0
             readonly property int columns: Math.max(1, Math.floor(width / (root.iconSize + 76)))
             cellWidth: width / columns
@@ -543,6 +574,47 @@ MouseArea {
                     contextMenu.x = launcherX - contextMenu.width / 2
                     contextMenu.y = launcherY
                     contextMenu.openAt()
+                }
+            }
+        }
+
+        Toolbar {
+            id: searchToolbar
+            z: 14
+            colBackground: Appearance.colors.colSecondaryContainer
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 14
+            visible: !settingsOverlay.shown
+                && !folderViewer.active
+                && !helpOverlay.shown
+                && !root.externalDragHover
+
+            ToolbarTextField {
+                id: searchField
+                placeholderText: focus ? Translation.tr("Search apps") : Translation.tr("Hit \"/\" to search")
+                clip: true
+                font.pixelSize: Appearance.font.pixelSize.small
+                colBackground: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.05)
+                color: Appearance.colors.colOnSecondaryContainer
+                placeholderTextColor: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.6)
+                onTextChanged: root.searchText = text
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Escape) {
+                        if (text.length > 0) text = ""
+                        else if (root.parent) root.parent.forceActiveFocus()
+                        event.accepted = true
+                    }
+                }
+            }
+
+            IconToolbarButton {
+                implicitWidth: height
+                onClicked: root.clearSearch()
+                text: "close"
+                colText: Appearance.colors.colOnSecondaryContainer
+                StyledToolTip {
+                    text: Translation.tr("Clear search")
                 }
             }
         }

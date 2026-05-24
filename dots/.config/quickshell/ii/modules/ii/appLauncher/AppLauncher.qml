@@ -108,7 +108,8 @@ Scope {
                     onEscapeDismissIfIdle: () => panelWindow.hide(),
                     onCloseSettings: () => launcherContent.closeSettings(),
                     onToggleDetach: () => root.toggleDetach(),
-                    onToggleHelp: () => launcherContent.toggleHelp()
+                    onToggleHelp: () => launcherContent.toggleHelp(),
+                    onFocusSearch: () => launcherContent.focusSearch()
                 })
             }
         }
@@ -148,7 +149,8 @@ Scope {
                 Keys.onPressed: (event) => LK.handleKey(event, launcherContent, {
                     onCloseSettings: () => launcherContent.closeSettings(),
                     onToggleDetach: () => root.toggleDetach(),
-                    onToggleHelp: () => launcherContent.toggleHelp()
+                    onToggleHelp: () => launcherContent.toggleHelp(),
+                    onFocusSearch: () => launcherContent.focusSearch()
                 })
             }
         }
