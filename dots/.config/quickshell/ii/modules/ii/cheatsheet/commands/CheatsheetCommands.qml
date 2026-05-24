@@ -62,7 +62,6 @@ Item {
     }
 
     focus: true
-    Component.onCompleted: filterField.forceActiveFocus()
     onFocusChanged: focus => {
         if (focus)
             filterField.forceActiveFocus();
@@ -136,7 +135,10 @@ Item {
         onTriggered: root.searchText = filterField.text
     }
 
-    Component.onCompleted: root.refreshTags()
+    Component.onCompleted: {
+        root.refreshTags();
+        filterField.forceActiveFocus();
+    }
 
     Rectangle {
         anchors.fill: parent
