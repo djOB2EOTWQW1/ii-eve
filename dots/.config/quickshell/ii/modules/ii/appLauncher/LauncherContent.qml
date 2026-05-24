@@ -84,15 +84,9 @@ MouseArea {
             return (CustomApps.folders || []).concat(CustomApps.rootEntries || [])
         }
         // While searching, flatten the namespace: every matching app shows up
-        // regardless of its folder, plus folders whose own name matches so the
-        // user can still navigate into one.
+        // regardless of its folder. Folders themselves are intentionally not
+        // included — the user is looking for apps.
         const out = []
-        const folders = CustomApps.folders || []
-        for (let i = 0; i < folders.length; i++) {
-            const f = folders[i]
-            if (!f) continue
-            if ((f.name || "").toLowerCase().includes(q)) out.push(f)
-        }
         const entries = CustomApps.entries || []
         for (let i = 0; i < entries.length; i++) {
             const e = entries[i]
