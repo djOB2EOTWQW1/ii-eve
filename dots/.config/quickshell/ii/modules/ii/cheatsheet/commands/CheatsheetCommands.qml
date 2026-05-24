@@ -62,15 +62,13 @@ Item {
     }
 
     focus: true
-    onFocusChanged: focus => {
-        if (focus)
-            filterField.forceActiveFocus();
-    }
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Escape) {
-            root.searchText = "";
-            filterField.text = "";
-            event.accepted = true;
+            if (root.searchText.length > 0 || filterField.text.length > 0) {
+                root.searchText = "";
+                filterField.text = "";
+                event.accepted = true;
+            }
             return;
         }
         if (event.key === Qt.Key_Slash) {
@@ -135,10 +133,7 @@ Item {
         onTriggered: root.searchText = filterField.text
     }
 
-    Component.onCompleted: {
-        root.refreshTags();
-        filterField.forceActiveFocus();
-    }
+    Component.onCompleted: root.refreshTags()
 
     Rectangle {
         anchors.fill: parent
@@ -546,13 +541,12 @@ Item {
                 placeholderTextColor: Qt.alpha(Appearance.colors.colOnSecondaryContainer, 0.6)
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape) {
-                        if (text.length > 0) {
+                        if (text.length > 0 || root.searchText.length > 0) {
                             text = "";
                             root.searchText = "";
-                        } else {
-                            root.forceActiveFocus();
+                            event.accepted = true;
                         }
-                        event.accepted = true;
+                        // else: let the event bubble up so cheatsheet can close.
                     }
                 }
             }

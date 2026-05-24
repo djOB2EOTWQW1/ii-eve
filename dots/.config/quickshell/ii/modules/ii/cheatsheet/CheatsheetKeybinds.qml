@@ -139,12 +139,13 @@ Item {
     readonly property bool isEmpty: root.matchCount === 0
 
     focus: true
-    Component.onCompleted: filterField.forceActiveFocus()
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Escape) {
-            CheatsheetSearch.query = "";
-            filterField.text = "";
-            event.accepted = true;
+            if (CheatsheetSearch.query.length > 0 || filterField.text.length > 0) {
+                CheatsheetSearch.query = "";
+                filterField.text = "";
+                event.accepted = true;
+            }
             return;
         }
         if (event.key === Qt.Key_Slash) {
@@ -250,9 +251,12 @@ Item {
             onTextChanged: CheatsheetSearch.query = text
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Escape) {
-                    if (text.length > 0) text = "";
-                    else root.forceActiveFocus();
-                    event.accepted = true;
+                    if (text.length > 0 || CheatsheetSearch.query.length > 0) {
+                        text = "";
+                        CheatsheetSearch.query = "";
+                        event.accepted = true;
+                    }
+                    // else: let the event bubble up so cheatsheet can close.
                 }
             }
         }
