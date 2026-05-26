@@ -35,6 +35,7 @@ Item {
         // Force re-evaluation when model changes
         const _count = model.count;
         const _tags = CommandsService.tagCounts;
+        const _version = CommandsService.modelVersion;
         
         const q = (root.searchText || "").toLowerCase();
         const tag = root.activeTag;
@@ -216,6 +217,35 @@ Item {
 
                 Item {
                     Layout.fillWidth: true
+                }
+
+                RippleButton {
+                    implicitHeight: 44
+                    implicitWidth: 44
+                    buttonRadius: Appearance.rounding.full
+                    enabled: CommandsService.commandsModel.count > 0
+                    opacity: enabled ? 1.0 : 0.4
+                    colBackground: Appearance.colors.colErrorContainer
+                    colBackgroundHover: Appearance.colors.colErrorContainerHover
+                    onClicked: deleteAllDialog.show = true
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 150
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "delete_sweep"
+                        iconSize: Appearance.font.pixelSize.large
+                        color: Appearance.colors.colOnErrorContainer
+                    }
+
+                    StyledToolTip {
+                        text: qsTr("Delete all commands")
+                    }
                 }
 
                 RippleButton {
@@ -499,13 +529,22 @@ Item {
                             }
                             Component.onCompleted: cardDelegate._appeared = true
 
-                            readonly property var _item: CommandsService.commandsModel.get(cardDelegate.idx)
+                            // Depend on modelVersion so this re-evaluates after
+                            // remove/insert/set — otherwise the get() result is
+                            // a stale snapshot (empty card) when rows shift.
+                            readonly property var _item: {
+                                CommandsService.modelVersion;
+                                const m = CommandsService.commandsModel;
+                                if (cardDelegate.idx < 0 || cardDelegate.idx >= m.count) return null;
+                                return m.get(cardDelegate.idx);
+                            }
 
                             CommandCard {
                                 id: commandCard
                                 anchors.fill: parent
                                 anchors.margins: 5
-                                
+                                visible: cardDelegate._item !== null
+
                                 commandId: cardDelegate._item ? cardDelegate._item.id : ""
                                 command: cardDelegate._item ? cardDelegate._item.command : ""
                                 description: cardDelegate._item ? cardDelegate._item.description : ""
@@ -786,6 +825,118 @@ Item {
                     }
                     ScrollBar.vertical: StyledScrollBar {}
                 }
+            }
+        }
+    }
+
+    Rectangle {
+        id: deleteAllDialog
+        anchors.fill: parent
+        z: 200
+        property bool show: false
+        color: Appearance.colors.colScrim
+        opacity: show ? 1 : 0
+        visible: opacity > 0
+        radius: Appearance.rounding.windowRounding
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.AllButtons
+            hoverEnabled: true
+            onClicked: deleteAllDialog.show = false
+        }
+
+        Rectangle {
+            id: deleteAllDialogBox
+            anchors.centerIn: parent
+            implicitWidth: 380
+            implicitHeight: deleteAllDialogColumn.implicitHeight + 48
+            radius: Appearance.rounding.large
+            color: Appearance.m3colors.m3surfaceContainerHigh
+
+            transform: Translate {
+                y: deleteAllDialog.show ? 0 : -40
+                Behavior on y {
+                    NumberAnimation {
+                        duration: 180
+                        easing.type: Easing.OutCubic
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.AllButtons
+                hoverEnabled: true
+            }
+
+            ColumnLayout {
+                id: deleteAllDialogColumn
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                    leftMargin: 24
+                    rightMargin: 24
+                }
+                spacing: 12
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: qsTr("Delete all commands?")
+                    color: Appearance.colors.colOnSurface
+                    wrapMode: Text.Wrap
+                    font {
+                        family: Appearance.font.family.title
+                        pixelSize: Appearance.font.pixelSize.title
+                        variableAxes: Appearance.font.variableAxes.title
+                    }
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: qsTr("This will remove all %1 commands. This cannot be undone.")
+                        .arg(CommandsService.commandsModel.count)
+                    color: Appearance.colors.colOnSurfaceVariant
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    wrapMode: Text.Wrap
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 8
+                    spacing: 4
+
+                    Item { Layout.fillWidth: true }
+
+                    DialogButton {
+                        buttonText: qsTr("Cancel")
+                        onClicked: deleteAllDialog.show = false
+                    }
+
+                    DialogButton {
+                        buttonText: qsTr("Delete all")
+                        colText: Appearance.colors.colError
+                        onClicked: {
+                            CommandsService.clearAll();
+                            deleteAllDialog.show = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        Keys.onPressed: event => {
+            if (event.key === Qt.Key_Escape) {
+                deleteAllDialog.show = false;
+                event.accepted = true;
             }
         }
     }

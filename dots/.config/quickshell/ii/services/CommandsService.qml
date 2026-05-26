@@ -13,6 +13,10 @@ Singleton {
     property ListModel commandsModel: ListModel {}
     property bool importing: false
     property var tagCounts: ({})
+    // Bumped on every mutation so delegate bindings that snapshot via
+    // commandsModel.get(idx) re-evaluate (those bindings otherwise can't tell
+    // when rows shift, since their idx dependency hasn't changed).
+    property int modelVersion: 0
 
     readonly property string filePath: Directories.commandsPath
 
@@ -55,6 +59,7 @@ Singleton {
         const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
         const tagList = tags.map(t => ({ modelData: t }));
         commandsModel.append({ id, command, description, tags: tagList });
+        modelVersion++;
         save();
     }
 
@@ -63,6 +68,7 @@ Singleton {
             if (commandsModel.get(i).id === id) {
                 const tagList = tags.map(t => ({ modelData: t }));
                 commandsModel.set(i, { id, command, description, tags: tagList });
+                modelVersion++;
                 save();
                 return;
             }
@@ -73,10 +79,18 @@ Singleton {
         for (let i = 0; i < commandsModel.count; i++) {
             if (commandsModel.get(i).id === id) {
                 commandsModel.remove(i);
+                modelVersion++;
                 save();
                 return;
             }
         }
+    }
+
+    function clearAll() {
+        if (commandsModel.count === 0) return;
+        commandsModel.clear();
+        modelVersion++;
+        save();
     }
 
     // Returns array of unique tag strings across all commands
@@ -130,6 +144,7 @@ Singleton {
                 });
                 commandsModel.append(batch);
                 root.importing = false;
+                modelVersion++;
                 save();
                 importFinished(true, "");
             } catch (e) {
@@ -159,6 +174,7 @@ Singleton {
                 });
                 commandsModel.clear();
                 commandsModel.append(batch);
+                modelVersion++;
                 updateTagCounts();
             } catch (e) {
                 console.log("[CommandsService] Error loading: " + e);
