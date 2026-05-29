@@ -68,35 +68,57 @@ Rectangle {
         spacing: root.imageSpacing
 
         RowLayout { // Header
-            Rectangle { // Provider name
-                id: providerNameWrapper
-                color: Appearance.colors.colSecondaryContainer
+            spacing: 9
+
+            Rectangle {
+                implicitWidth: 34
+                implicitHeight: 34
                 radius: Appearance.rounding.small
-                implicitWidth: providerName.implicitWidth + 10 * 2
-                implicitHeight: Math.max(providerName.implicitHeight + 5 * 2, 30)
+                color: Appearance.colors.colPrimaryContainer
+                Layout.alignment: Qt.AlignVCenter
+
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: root.providerIcons[root.responseData.provider] ?? "image_search"
+                    iconSize: Appearance.font.pixelSize.larger
+                    color: Appearance.colors.colOnPrimaryContainer
+                }
+            }
+
+            ColumnLayout {
+                spacing: 0
                 Layout.alignment: Qt.AlignVCenter
 
                 StyledText {
-                    id: providerName
-                    anchors.centerIn: parent
-                    font.pixelSize: Appearance.font.pixelSize.large
-                    color: Appearance.m3colors.m3onSecondaryContainer
                     text: Booru.providers[root.responseData.provider].name
+                    font.pixelSize: Appearance.font.pixelSize.normal
+                    font.weight: Font.DemiBold
+                    color: Appearance.colors.colOnLayer1
+                }
+                StyledText {
+                    visible: root.responseData.images.length > 0
+                    text: Translation.tr("%1 results").arg(root.responseData.images.length)
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                    color: Appearance.colors.colSubtext
                 }
             }
+
             Item { Layout.fillWidth: true }
-            Item { // Page number
+
+            Rectangle { // Page pill
                 visible: root.responseData.page != "" && root.responseData.page > 0
-                implicitWidth: Math.max(pageNumber.implicitWidth + 10 * 2, 30)
-                implicitHeight: pageNumber.implicitHeight + 5 * 2
+                radius: Appearance.rounding.full
+                color: Appearance.colors.colSurfaceContainerHighest
+                implicitHeight: pageNumber.implicitHeight + 8
+                implicitWidth: pageNumber.implicitWidth + 24
                 Layout.alignment: Qt.AlignVCenter
 
                 StyledText {
                     id: pageNumber
                     anchors.centerIn: parent
                     font.pixelSize: Appearance.font.pixelSize.smaller
+                    font.weight: Font.DemiBold
                     color: Appearance.colors.colOnLayer2
-                    // text: `Page ${root.responseData.page}`
                     text: Translation.tr("Page %1").arg(root.responseData.page)
                 }
             }
