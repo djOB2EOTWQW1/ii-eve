@@ -25,6 +25,12 @@ Rectangle {
     property real imageSpacing: 5
     property real responsePadding: 5
 
+    readonly property var providerIcons: ({
+        "yandere": "image", "konachan": "wallpaper", "zerochan": "child_care",
+        "danbooru": "photo_library", "gelbooru": "collections",
+        "waifu.im": "favorite", "t.alcy.cc": "landscape", "system": "info"
+    })
+
     anchors.left: parent?.left
     anchors.right: parent?.right
     implicitHeight: columnLayout.implicitHeight + root.responsePadding * 2
@@ -129,6 +135,7 @@ Rectangle {
                     ApiCommandButton {
                         Layout.fillWidth: false
                         buttonText: modelData
+                        colBackground: Appearance.colors.colSecondaryContainer
                         onClicked: {
                             if(root.tagInputField.text.length !== 0) root.tagInputField.text += " "
                             root.tagInputField.text += modelData
@@ -241,45 +248,32 @@ Rectangle {
 
         RippleButton { // Next page button
             id: button
-            property string buttonText
             visible: root.responseData.page != "" && root.responseData.page > 0
-
-            Layout.alignment: Qt.AlignRight
-            implicitHeight: 30
-            leftPadding: 10
-            rightPadding: 5
+            Layout.fillWidth: true
+            implicitHeight: 38
 
             onClicked: {
                 tagInputField.text = `${responseData.tags.join(" ")} ${parseInt(root.responseData.page) + 1}`
                 tagInputField.accept()
             }
 
-            buttonRadius: Appearance.rounding.small
+            buttonRadius: Appearance.rounding.normal
             colBackground: Appearance.colors.colSurfaceContainerHighest
             colBackgroundHover: Appearance.colors.colSurfaceContainerHighestHover
-            colRipple: Appearance.colors.colSurfaceContainerHighestActive            
+            colRipple: Appearance.colors.colSurfaceContainerHighestActive
 
-            contentItem: Item {
-                anchors.fill: parent
-                implicitHeight: nextPageRow.implicitHeight
-                implicitWidth: nextPageRow.implicitWidth
-
-                RowLayout {
-                    id: nextPageRow
-                    anchors.centerIn: parent
-                    spacing: 0
-                    StyledText {
-                        Layout.alignment: Qt.AlignVCenter
-                        verticalAlignment: Text.AlignVCenter
-                        text: "Next page"
-                        color: Appearance.m3colors.m3onSurface
-                    }
-                    MaterialSymbol {
-                        Layout.alignment: Qt.AlignVCenter
-                        iconSize: Appearance.font.pixelSize.larger
-                        color: Appearance.m3colors.m3onSurface
-                        text: "chevron_right"
-                    }
+            contentItem: RowLayout {
+                anchors.centerIn: parent
+                spacing: 4
+                StyledText {
+                    text: Translation.tr("Next page")
+                    font.weight: Font.DemiBold
+                    color: Appearance.m3colors.m3onSurface
+                }
+                MaterialSymbol {
+                    iconSize: Appearance.font.pixelSize.larger
+                    color: Appearance.m3colors.m3onSurface
+                    text: "chevron_right"
                 }
             }
         }
