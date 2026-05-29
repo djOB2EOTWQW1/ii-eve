@@ -27,7 +27,7 @@ Item {
 
         Rectangle {
             Layout.fillWidth: true
-            radius: Appearance.rounding.small
+            radius: Appearance.rounding.normal
             color: Appearance.colors.colSecondaryContainer
             implicitHeight: bannerContent.implicitHeight + 20
 
