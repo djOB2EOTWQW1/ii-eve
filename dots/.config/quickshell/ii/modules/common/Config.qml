@@ -766,6 +766,7 @@ Singleton {
                     property string defaultProvider: "yandere"
                     property int limit: 20
                     property real rowTooShortThreshold: 250
+                    property var popularTags: ["scenery", "1girl", "landscape", "cat", "wallpaper"]
                     property JsonObject zerochan: JsonObject {
                         property string username: "[unset]"
                     }
