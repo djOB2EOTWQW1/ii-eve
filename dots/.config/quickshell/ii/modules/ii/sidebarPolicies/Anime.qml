@@ -322,14 +322,16 @@ Item {
                 }
             }
 
-            PagePlaceholder {
-                id: placeholderItem
+            Loader { // Empty-state welcome
+                id: welcomeLoader
                 z: 2
-                shown: root.responses.length === 0
-                icon: "bookmark_heart"
-                title: Translation.tr("Anime boorus")
-                description: ""
-                shape: MaterialShape.Shape.Bun
+                anchors.fill: parent
+                active: root.responses.length === 0 && !root.showHistory
+                visible: active
+                sourceComponent: AnimeComponents.BooruWelcome {
+                    tagInputField: root.inputField
+                    onSearchRequested: (text) => root.handleInput(text)
+                }
             }
 
             ScrollToBottomButton {
@@ -529,18 +531,6 @@ Item {
                     keyInputDialogLoader.open(keyType)
                 }
             }
-        }
-
-        Loader { // Loader for provider selection dropdown
-            id: providerSelectorLoader
-            width: item?.implicitWidth
-            height: item?.implicitHeight
-            Layout.alignment: Qt.AlignHCenter
-
-            active: root.responses.length === 0
-            visible: active
-
-            sourceComponent: AnimeComponents.ProviderSelector {}
         }
 
         FlowButtonGroup { // Tag suggestions
