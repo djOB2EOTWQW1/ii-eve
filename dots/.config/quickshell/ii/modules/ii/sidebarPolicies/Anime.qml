@@ -703,9 +703,9 @@ Item {
                     id: sendButton
                     Layout.alignment: Qt.AlignTop
                     Layout.rightMargin: 5
-                    implicitWidth: 40
-                    implicitHeight: 40
-                    buttonRadius: Appearance.rounding.small
+                    implicitWidth: 42
+                    implicitHeight: 42
+                    buttonRadius: Appearance.rounding.full
                     enabled: tagInputField.text.length > 0
                     toggled: enabled
 
@@ -758,15 +758,9 @@ Item {
                         .arg(root.commandPrefix)
                 }
 
-                StyledText {
-                    font.pixelSize: Appearance.font.pixelSize.large
-                    color: Appearance.colors.colOnLayer1
-                    text: "•"
-                }
-
                 MouseArea { // NSFW toggle
                     visible: width > 0
-                    implicitWidth: switchesRow.implicitWidth
+                    implicitWidth: nsfwPill.implicitWidth
                     Layout.fillHeight: true
 
                     hoverEnabled: true
@@ -775,32 +769,38 @@ Item {
                         nsfwSwitch.checked = !nsfwSwitch.checked
                     }
 
-                    RowLayout {
-                        id: switchesRow
-                        spacing: 5
+                    Rectangle {
+                        id: nsfwPill
                         anchors.centerIn: parent
+                        radius: Appearance.rounding.full
+                        color: nsfwSwitch.checked ? Appearance.colors.colPrimaryContainer : Appearance.colors.colLayer2
+                        implicitWidth: switchesRow.implicitWidth + 16
+                        implicitHeight: switchesRow.implicitHeight + 8
 
-                        StyledText {
-                            Layout.fillHeight: true
-                            Layout.leftMargin: 10
-                            Layout.alignment: Qt.AlignVCenter
-                            font.pixelSize: Appearance.font.pixelSize.smaller
-                            color: nsfwSwitch.enabled ? Appearance.colors.colOnLayer1 : Appearance.m3colors.m3outline
-                            text: Translation.tr("Allow NSFW")
-                        }
-                        StyledSwitch {
-                            id: nsfwSwitch
-                            enabled: Booru.currentProvider !== "zerochan"
-                            scale: 0.6
-                            Layout.alignment: Qt.AlignVCenter
-                            checked: (Persistent.states.booru.allowNsfw && Booru.currentProvider !== "zerochan")
-                            onCheckedChanged: {
-                                if (!nsfwSwitch.enabled) return;
-                                Persistent.states.booru.allowNsfw = checked;
+                        RowLayout {
+                            id: switchesRow
+                            spacing: 5
+                            anchors.centerIn: parent
+
+                            StyledText {
+                                Layout.alignment: Qt.AlignVCenter
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                color: nsfwSwitch.enabled ? (nsfwSwitch.checked ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer1) : Appearance.m3colors.m3outline
+                                text: Translation.tr("NSFW")
+                            }
+                            StyledSwitch {
+                                id: nsfwSwitch
+                                enabled: Booru.currentProvider !== "zerochan"
+                                scale: 0.6
+                                Layout.alignment: Qt.AlignVCenter
+                                checked: (Persistent.states.booru.allowNsfw && Booru.currentProvider !== "zerochan")
+                                onCheckedChanged: {
+                                    if (!nsfwSwitch.enabled) return;
+                                    Persistent.states.booru.allowNsfw = checked;
+                                }
                             }
                         }
                     }
-
                 }
 
                 Item { Layout.fillWidth: true }
