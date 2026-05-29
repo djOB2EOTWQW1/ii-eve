@@ -263,6 +263,7 @@ Rectangle {
                         previewDownloadPath: root.previewDownloadPath
                         downloadPath: root.downloadPath
                         nsfwPath: root.nsfwPath
+                        tagInputField: root.tagInputField
                     }
                 }
             }
