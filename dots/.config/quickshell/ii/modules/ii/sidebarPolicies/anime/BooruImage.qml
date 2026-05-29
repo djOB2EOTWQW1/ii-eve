@@ -24,8 +24,10 @@ Button {
     property string filePath: `${root.previewDownloadPath}/${root.fileName}`
     property int maxTagStringLineLength: 50
     property real imageRadius: Appearance.rounding.small
+    property var tagInputField
 
     property bool showActions: false
+    property bool showTags: false
     ImageDownloaderProcess {
         id: imageDownloader
         running: root.manualDownload
@@ -40,10 +42,6 @@ Button {
                 modelData.aspect_ratio = width / height
             }
         }
-    }
-
-    StyledToolTip {
-        text: `${StringUtils.wordWrap(root.imageData.tags, root.maxTagStringLineLength)}`
     }
 
     padding: 0
@@ -78,137 +76,117 @@ Button {
             }
         }
 
-        RippleButton {
-            id: menuButton
-            anchors.top: parent.top
-            anchors.right: parent.right
-            property real buttonSize: 30
-            anchors.margins: Math.max(root.imageRadius - buttonSize / 2, 8)
-            implicitHeight: buttonSize
-            implicitWidth: buttonSize
+        Rectangle { // Hover scrim
+            anchors.fill: parent
+            radius: root.imageRadius
+            visible: actionRow.opacity > 0
+            gradient: Gradient {
+                GradientStop { position: 0.5; color: "transparent" }
+                GradientStop { position: 1.0; color: ColorUtils.transparentize(Appearance.m3colors.m3surface, 0.4) }
+            }
+            opacity: actionRow.opacity
+        }
 
-            buttonRadius: Appearance.rounding.full
-            colBackground: ColorUtils.transparentize(Appearance.m3colors.m3surface, 0.3)
-            colBackgroundHover: ColorUtils.transparentize(ColorUtils.mix(Appearance.m3colors.m3surface, Appearance.m3colors.m3onSurface, 0.8), 0.2)
-            colRipple: ColorUtils.transparentize(ColorUtils.mix(Appearance.m3colors.m3surface, Appearance.m3colors.m3onSurface, 0.6), 0.1)
+        RowLayout { // Hover action row
+            id: actionRow
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+                margins: 8
+            }
+            spacing: 6
+            opacity: (root.hovered || root.showTags) ? 1 : 0
+            visible: opacity > 0
 
-            contentItem: MaterialSymbol {
-                horizontalAlignment: Text.AlignHCenter
-                iconSize: Appearance.font.pixelSize.large
-                color: Appearance.m3colors.m3onSurface
-                text: "more_vert"
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Appearance.animation.elementMoveFast.duration
+                    easing.type: Appearance.animation.elementMoveFast.type
+                    easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+                }
             }
 
-            onClicked: {
-                root.showActions = !root.showActions
+            component ImgActionButton: RippleButton {
+                implicitWidth: 30
+                implicitHeight: 30
+                buttonRadius: Appearance.rounding.full
+                colBackground: ColorUtils.transparentize(Appearance.m3colors.m3surface, 0.3)
+                colBackgroundHover: ColorUtils.transparentize(ColorUtils.mix(Appearance.m3colors.m3surface, Appearance.m3colors.m3onSurface, 0.8), 0.2)
+                colRipple: ColorUtils.transparentize(ColorUtils.mix(Appearance.m3colors.m3surface, Appearance.m3colors.m3onSurface, 0.6), 0.1)
+                property string icon: ""
+                property color iconColor: Appearance.m3colors.m3onSurface
+                contentItem: MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: parent.icon
+                    iconSize: Appearance.font.pixelSize.large
+                    color: parent.iconColor
+                }
+            }
+
+            ImgActionButton { // Download
+                icon: "download"
+                onClicked: {
+                    const targetPath = root.imageData.is_nsfw ? root.nsfwPath : root.downloadPath;
+                    const isGelbooru = root.imageData.file_url.includes("gelbooru.com");
+                    const refererHeader = isGelbooru ?
+                        `-H "Referer: https://gelbooru.com/index.php?page=post&s=view&id=${root.imageData.id}"` : "";
+                    const userAgent = Config.options?.networking?.userAgent ?? ""
+                    const userAgentHeader = userAgent ? ` -H 'User-Agent: ${StringUtils.shellSingleQuoteEscape(userAgent)}'` : ""
+                    Quickshell.execDetached(["bash", "-c",
+                        `mkdir -p '${targetPath}' && curl ${refererHeader}${userAgentHeader} '${StringUtils.shellSingleQuoteEscape(root.imageData.file_url)}' -o '${targetPath}/${root.fileName}' && notify-send '${Translation.tr("Download complete")}' '${root.downloadPath}/${root.fileName}' -a 'Shell'`
+                    ])
+                }
+            }
+
+            ImgActionButton { // Open source / link
+                icon: "open_in_new"
+                onClicked: {
+                    const url = (root.imageData.source && root.imageData.source.length > 0)
+                        ? root.imageData.source : root.imageData.file_url
+                    Hyprland.dispatch("hl.config({cursor = {no_warps = true}})")
+                    Qt.openUrlExternally(url)
+                    Hyprland.dispatch("hl.config({cursor = {no_warps = false}})")
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
+            ImgActionButton { // Favorite
+                icon: "favorite"
+                visible: (root.imageData.file_url.includes("gelbooru.com") && Booru.apiKeys["gelbooru_pass_hash"]) ||
+                    (root.imageData.file_url.includes("donmai.us") && Booru.apiKeys["danbooru"] && Booru.apiKeys["danbooru_user_id"])
+                onClicked: {
+                    const postId = root.imageData.id;
+                    if (root.imageData.file_url.includes("gelbooru.com")) {
+                        const cookieString = `user_id=${Booru.apiKeys["gelbooru_user_id"] || ""}; pass_hash=${Booru.apiKeys["gelbooru_pass_hash"] || ""}; post_threshold=0`;
+                        Quickshell.execDetached(["bash", "-c",
+                            `response=$(curl -s -H 'Referer: https://gelbooru.com/index.php?page=post&s=view&id=${postId}' -b '${cookieString}' 'https://gelbooru.com/public/addfav.php?id=${postId}'); if [ "$response" = "1" ] || [ "$response" = "3" ]; then notify-send '✅ Added to favorites' 'Post #${postId}' -a 'Shell'; else notify-send '❌ Failed to add' "Post #${postId} (response: $response)" -a 'Shell'; fi`
+                        ]);
+                    } else if (root.imageData.file_url.includes("donmai.us")) {
+                        Quickshell.execDetached(["bash", "-c",
+                            `response=$(curl -s -X POST "https://danbooru.donmai.us/favorites.json?login=${Booru.apiKeys["danbooru_user_id"]}&api_key=${Booru.apiKeys["danbooru"]}" -d "post_id=${postId}"); if echo "$response" | grep -q '"success":true\|"post_id"' || [ "$response" != "null" ] && [ "$response" != "" ]; then notify-send '✅ Added to favorites' 'Post #${postId}' -a 'Shell'; else notify-send '❌ Failed to add' "Post #${postId} - Response: $response" -a 'Shell'; fi`
+                        ]);
+                    }
+                }
+            }
+
+            ImgActionButton { // Tags
+                icon: "sell"
+                iconColor: root.showTags ? Appearance.colors.colOnPrimary : Appearance.m3colors.m3onSurface
+                colBackground: root.showTags ? Appearance.colors.colPrimary : ColorUtils.transparentize(Appearance.m3colors.m3surface, 0.3)
+                onClicked: root.showTags = !root.showTags
             }
         }
 
-        Loader {
-            id: contextMenuLoader
-            active: root.showActions
-            anchors.top: menuButton.bottom
-            anchors.right: parent.right
-            anchors.margins: 8
-
-            sourceComponent: Item {
-                width: contextMenu.width
-                height: contextMenu.height
-
-                StyledRectangularShadow {
-                    target: contextMenu
-                }
-                Rectangle {
-                    id: contextMenu
-                    anchors.centerIn: parent
-                    opacity: root.showActions ? 1 : 0
-                    visible: opacity > 0
-                    radius: Appearance.rounding.small
-                    color: Appearance.m3colors.m3surfaceContainer
-                    implicitHeight: contextMenuColumnLayout.implicitHeight + radius * 2
-                    implicitWidth: contextMenuColumnLayout.implicitWidth
-
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Appearance.animation.elementMoveFast.duration
-                            easing.type: Appearance.animation.elementMoveFast.type
-                            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
-                        }
-                    }
-
-                    ColumnLayout {
-                        id: contextMenuColumnLayout
-                        anchors.centerIn: parent
-                        spacing: 0
-
-                        MenuButton {
-                            id: openFileLinkButton
-                            Layout.fillWidth: true
-                            buttonText: Translation.tr("Open file link")
-                            onClicked: {
-                                root.showActions = false
-                                Hyprland.dispatch("hl.config({cursor = {no_warps = true}})")
-                                Qt.openUrlExternally(root.imageData.file_url)
-                                Hyprland.dispatch("hl.config({cursor = {no_warps = false}})")
-                            }
-                        }
-                        MenuButton {
-                            id: sourceButton
-                            visible: root.imageData.source && root.imageData.source.length > 0
-                            Layout.fillWidth: true
-                            buttonText: Translation.tr("Go to source (%1)").arg(StringUtils.getDomain(root.imageData.source))
-                            enabled: root.imageData.source && root.imageData.source.length > 0
-                            onClicked: {
-                                root.showActions = false
-                                Hyprland.dispatch("hl.config({cursor = {no_warps = true}})")
-                                Qt.openUrlExternally(root.imageData.source)
-                                Hyprland.dispatch("hl.config({cursor = {no_warps = false}})")
-                            }
-                        }
-                        MenuButton {
-                            id: downloadButton
-                            Layout.fillWidth: true
-                            buttonText: Translation.tr("Download")
-                            onClicked: {
-                                root.showActions = false;
-                                const targetPath = root.imageData.is_nsfw ? root.nsfwPath : root.downloadPath;
-                                const isGelbooru = root.imageData.file_url.includes("gelbooru.com");
-                                const refererHeader = isGelbooru ?
-                                `-H "Referer: https://gelbooru.com/index.php?page=post&s=view&id=${root.imageData.id}"` : "";
-                                const userAgent = Config.options?.networking?.userAgent ?? ""
-                                const userAgentHeader = userAgent ? ` -H 'User-Agent: ${StringUtils.shellSingleQuoteEscape(userAgent)}'` : ""
-                                Quickshell.execDetached(["bash", "-c",
-                                    `mkdir -p '${targetPath}' && curl ${refererHeader}${userAgentHeader} '${StringUtils.shellSingleQuoteEscape(root.imageData.file_url)}' -o '${targetPath}/${root.fileName}' && notify-send '${Translation.tr("Download complete")}' '${root.downloadPath}/${root.fileName}' -a 'Shell'`
-                                ])
-                            }
-                        }
-                        MenuButton {
-                            id: favoriteButton
-                            visible: (root.imageData.file_url.includes("gelbooru.com") && Booru.apiKeys["gelbooru_pass_hash"]) ||
-                            (root.imageData.file_url.includes("donmai.us") && Booru.apiKeys["danbooru"] && Booru.apiKeys["danbooru_user_id"])
-                            Layout.fillWidth: true
-                            buttonText: Translation.tr("Add to favorites")
-                            onClicked: {
-                                root.showActions = false;
-                                const postId = root.imageData.id;
-
-                                if (root.imageData.file_url.includes("gelbooru.com")) {
-                                    // Gelbooru logic
-                                    const cookieString = `user_id=${Booru.apiKeys["gelbooru_user_id"] || ""}; pass_hash=${Booru.apiKeys["gelbooru_pass_hash"] || ""}; post_threshold=0`;
-                                    Quickshell.execDetached(["bash", "-c",
-                                                            `response=$(curl -s -H 'Referer: https://gelbooru.com/index.php?page=post&s=view&id=${postId}' -b '${cookieString}' 'https://gelbooru.com/public/addfav.php?id=${postId}'); if [ "$response" = "1" ] || [ "$response" = "3" ]; then notify-send '✅ Added to favorites' 'Post #${postId}' -a 'Shell'; else notify-send '❌ Failed to add' "Post #${postId} (response: $response)" -a 'Shell'; fi`
-                                    ]);
-                                }
-                                else if (root.imageData.file_url.includes("donmai.us")) {
-                                    // Danbooru logic
-                                    Quickshell.execDetached(["bash", "-c",
-                                                            `response=$(curl -s -X POST "https://danbooru.donmai.us/favorites.json?login=${Booru.apiKeys["danbooru_user_id"]}&api_key=${Booru.apiKeys["danbooru"]}" -d "post_id=${postId}"); if echo "$response" | grep -q '"success":true\|"post_id"' || [ "$response" != "null" ] && [ "$response" != "" ]; then notify-send '✅ Added to favorites' 'Post #${postId}' -a 'Shell'; else notify-send '❌ Failed to add' "Post #${postId} - Response: $response" -a 'Shell'; fi`
-                                    ]);
-                                }
-                            }
-                        }
-                    }
-                }
+        Loader { // Tags overlay
+            anchors.fill: parent
+            active: root.showTags
+            sourceComponent: ImageTagsOverlay {
+                tagsString: root.imageData.tags
+                cornerRadius: root.imageRadius
+                tagInputField: root.tagInputField
+                onCloseRequested: root.showTags = false
             }
         }
     }
