@@ -70,9 +70,9 @@ Scope {
                 }
 
                 visible: {
-                    if (isResettingZoom) return false // not showing when we are resetting 
+                    if (isResettingZoom) return false // not showing when we are resetting
                     if (!showOpeningAnimation) return GlobalStates.overviewOpen // no anim
-                    
+
                     return isZoomInStyle ? scaleAnimated > defaultRatio : scaleAnimated < defaultRatio
                 }
 

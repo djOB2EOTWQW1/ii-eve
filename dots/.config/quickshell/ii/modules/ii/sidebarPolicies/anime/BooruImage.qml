@@ -175,8 +175,10 @@ Button {
                                 const isGelbooru = root.imageData.file_url.includes("gelbooru.com");
                                 const refererHeader = isGelbooru ?
                                 `-H "Referer: https://gelbooru.com/index.php?page=post&s=view&id=${root.imageData.id}"` : "";
+                                const userAgent = Config.options?.networking?.userAgent ?? ""
+                                const userAgentHeader = userAgent ? ` -H 'User-Agent: ${StringUtils.shellSingleQuoteEscape(userAgent)}'` : ""
                                 Quickshell.execDetached(["bash", "-c",
-                                                        `mkdir -p '${targetPath}' && curl ${refererHeader} '${root.imageData.file_url}' -o '${targetPath}/${root.fileName}' && notify-send '${Translation.tr("Download complete")}' '${root.downloadPath}/${root.fileName}' -a 'Shell'`
+                                    `mkdir -p '${targetPath}' && curl ${refererHeader}${userAgentHeader} '${StringUtils.shellSingleQuoteEscape(root.imageData.file_url)}' -o '${targetPath}/${root.fileName}' && notify-send '${Translation.tr("Download complete")}' '${root.downloadPath}/${root.fileName}' -a 'Shell'`
                                 ])
                             }
                         }
