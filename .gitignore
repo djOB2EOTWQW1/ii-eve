@@ -17,3 +17,6 @@ __pycache__/
 *~
 
 /docs
+
+# Superpowers brainstorming companion (local, do not commit)
+.superpowers/
