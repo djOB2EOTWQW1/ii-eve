@@ -342,8 +342,9 @@ Item {
 
         Loader { // Loader for Provider API credentials input buttons
             id: apiButtonsLoader
-            width: item?.implicitWidth
-            height: item?.implicitHeight
+            width: active ? (item?.implicitWidth ?? 0) : 0
+            height: active ? (item?.implicitHeight ?? 0) : 0
+            visible: active
             Layout.alignment: Qt.AlignHCenter
 
             active: (Booru.currentProvider === "gelbooru" || Booru.currentProvider === "danbooru") &&
