@@ -28,7 +28,6 @@ Item {
     property var suggestionQuery: ""
     property var suggestionList: []
 
-    property bool showHistory: false
     property bool pullLoading: false
     property int pullLoadingGap: 80
     property real normalizedPullDistance: Math.max(0, (1 - Math.exp(-booruResponseListView.verticalOvershoot / 50)) * booruResponseListView.dragging)
@@ -91,13 +90,6 @@ Item {
             description: Translation.tr("Allow NSFW content"),
             execute: () => {
                 Persistent.states.booru.allowNsfw = true;
-            }
-        },
-        {
-            name: "history",
-            description: Translation.tr("Show your last 10 searches"),
-            execute: () => {
-                root.showHistory = !root.showHistory
             }
         },
         {
@@ -256,24 +248,6 @@ Item {
         }
         spacing: root.padding
 
-                Loader { // Banner: API key instructions
-            id: apiKeyBannerLoader
-            width: item?.implicitWidth
-            height: item?.implicitHeight
-            Layout.alignment: Qt.AlignHCenter
-
-            active: Booru.currentProvider !== "yandere" && Booru.currentProvider !== "waifu.im" && Booru.currentProvider !== "t.alcy.cc" && Booru.currentProvider !== "konachan" &&
-            root.responses.length === 0 &&
-            !Persistent.states.booru.apiKeyBannerDismissed &&
-            (!Booru.apiKeys[Booru.currentProvider])
-            visible: active
-
-            sourceComponent: AnimeComponents.ApiKeyBanner {
-                responses: root.responses
-                onLearnMoreClicked: apiKeyArticleDialogLoader.active = true
-            }
-        }
-
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -326,7 +300,7 @@ Item {
                 id: welcomeLoader
                 z: 2
                 anchors.fill: parent
-                active: root.responses.length === 0 && !root.showHistory
+                active: root.responses.length === 0
                 visible: active
                 sourceComponent: AnimeComponents.BooruWelcome {
                     tagInputField: root.inputField
@@ -359,168 +333,6 @@ Item {
                 scale: root.pullLoading ? 1 : Math.min(1, root.normalizedPullDistance * 2)
             }
 
-            // HISTORY
-            Rectangle {
-                id: historyPanel
-                anchors.fill: parent
-                visible: root.showHistory
-                z: 10
-                radius: Appearance.rounding.small
-                color: Appearance.m3colors.m3surfaceContainer
-
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                }
-
-                ColumnLayout {
-                    anchors {
-                        fill: parent
-                        margins: 10
-                    }
-                    spacing: 6
-
-                    RowLayout {
-                        Layout.fillWidth: true
-
-                        Rectangle {
-                            implicitWidth: 30
-                            implicitHeight: 30
-                            radius: Appearance.rounding.small
-                            color: Appearance.colors.colSecondaryContainer
-                            Layout.alignment: Qt.AlignVCenter
-                            MaterialSymbol {
-                                anchors.centerIn: parent
-                                text: "history"
-                                iconSize: 18
-                                color: Appearance.colors.colOnSecondaryContainer
-                            }
-                        }
-
-                        StyledText {
-                            text: Translation.tr("Recent Searches")
-                            font.pixelSize: Appearance.font.pixelSize.normal
-                            font.weight: Font.DemiBold
-                            color: Appearance.colors.colOnLayer2
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        RippleButton {
-                            implicitWidth: 30
-                            implicitHeight: 30
-                            buttonRadius: Appearance.rounding.small
-                            onClicked: {
-                                Persistent.states.booru.searchHistory = [];
-                            }
-                            contentItem: MaterialSymbol {
-                                anchors.centerIn: parent
-                                text: "delete"
-                                iconSize: 18
-                                color: Appearance.colors.colOnLayer2
-                            }
-                        }
-
-                        RippleButton {
-                            implicitWidth: 30
-                            implicitHeight: 30
-                            buttonRadius: Appearance.rounding.small
-                            onClicked: root.showHistory = false
-                            contentItem: MaterialSymbol {
-                                anchors.centerIn: parent
-                                text: "close"
-                                iconSize: 18
-                                color: Appearance.colors.colOnLayer2
-                            }
-                        }
-                    }
-
-                    StyledListView {
-                        id: historyListView
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        spacing: 4
-                        clip: true
-
-                        model: ScriptModel {
-                            values: Persistent.states.booru.searchHistory ?? []
-                        }
-
-                        delegate: RippleButton {
-                            required property var modelData
-                            anchors.left: parent?.left
-                            anchors.right: parent?.right
-                            implicitHeight: historyRow.implicitHeight + 18
-                            buttonRadius: Appearance.rounding.normal
-                            colBackground: Appearance.colors.colLayer1
-                            colBackgroundHover: Appearance.colors.colLayer1Hover
-
-                            onClicked: {
-                                const entry = modelData
-
-                                const searchText = entry.tags.join(" ") +
-                                (entry.page > 1 ? " " + entry.page : "")
-
-                                if (entry.provider && entry.provider !== Booru.currentProvider) {
-                                    Booru.setProvider(entry.provider)
-                                }
-
-                                root.showHistory = false
-                                tagInputField.text = searchText
-                                root.handleInput(searchText)
-                            }
-
-                            contentItem: RowLayout {
-                                id: historyRow
-                                anchors {
-                                    left: parent.left
-                                    right: parent.right
-                                    margins: 10
-                                    verticalCenter: parent.verticalCenter
-                                }
-                                spacing: 8
-
-                                MaterialSymbol {
-                                    text: "history"
-                                    iconSize: 18
-                                    color: Appearance.colors.colOnLayer1
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 2
-
-                                    StyledText {
-                                        Layout.fillWidth: true
-                                        text: modelData.tags?.join(", ") || Translation.tr("[no tags]")
-                                        font.pixelSize: Appearance.font.pixelSize.small
-                                        color: Appearance.colors.colOnLayer1
-                                        elide: Text.ElideRight
-                                    }
-
-                                    StyledText {
-                                        text: Translation.tr("Page %1 · %2")
-                                        .arg(modelData.page ?? 1)
-                                        .arg(Booru.providers[modelData.provider]?.name ?? modelData.provider ?? "?")
-                                        font.pixelSize: Appearance.font.pixelSize.smaller
-                                        color: Appearance.colors.colSubtext
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                PagePlaceholder {
-                    visible: (Persistent.states.booru.searchHistory ?? []).length === 0
-                    shown: (Persistent.states.booru.searchHistory ?? []).length === 0
-                    icon: "manage_search"
-                    title: Translation.tr("No history yet")
-                    description: ""
-                    shape: MaterialShape.Shape.Cookie7Sided
-                }
-            }
-            // HISTORY BLOCK
         }
 
         DescriptionBox { // Tag suggestion description
@@ -753,17 +565,6 @@ Item {
                 anchors.rightMargin: 5
                 spacing: 5
 
-                property var commandsShown: [
-                    {
-                        name: "history",
-                        sendDirectly: true,
-                    },
-                    {
-                        name: "clear",
-                        sendDirectly: true,
-                    },
-                ]
-
                 ApiInputBoxIndicator { // Tool indicator
                     icon: "api"
                     text: Booru.providers[Booru.currentProvider].name
@@ -819,29 +620,26 @@ Item {
 
                 Item { Layout.fillWidth: true }
 
-                ButtonGroup {
-                    padding: 0
-                    Repeater { // Command buttons
-                        id: commandRepeater
-                        model: commandButtonsRow.commandsShown
-                        delegate: ApiCommandButton {
-                            property string commandRepresentation: `${root.commandPrefix}${modelData.name}`
-                            buttonText: commandRepresentation
-                            colBackground: Appearance.colors.colLayer2
+                RippleButton { // Clear
+                    implicitWidth: 34
+                    implicitHeight: 34
+                    buttonRadius: Appearance.rounding.full
+                    colBackground: Appearance.colors.colLayer2
+                    colBackgroundHover: Appearance.colors.colLayer2Hover
+                    onClicked: {
+                        root.handleInput(`${root.commandPrefix}clear`)
+                        tagInputField.text = ""
+                    }
 
-                            downAction: () => {
-                                if (modelData.sendDirectly) {
-                                    root.handleInput(commandRepresentation)
-                                } else {
-                                    tagInputField.text = commandRepresentation + " "
-                                    tagInputField.cursorPosition = tagInputField.text.length
-                                    tagInputField.forceActiveFocus()
-                                }
-                                if (modelData.name === "clear") {
-                                    tagInputField.text = ""
-                                }
-                            }
-                        }
+                    StyledToolTip {
+                        text: Translation.tr("Clear")
+                    }
+
+                    contentItem: MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "delete_sweep"
+                        iconSize: 20
+                        color: Appearance.colors.colOnLayer2
                     }
                 }
             }
@@ -870,16 +668,4 @@ Item {
         }
     }
 
-    Loader { // Loader for API key instructions article dialog
-        id: apiKeyArticleDialogLoader
-        anchors.fill: parent
-        z: 100
-        active: false
-
-        sourceComponent: AnimeComponents.ApiKeyArticleDialog {
-            onClosed: {
-                apiKeyArticleDialogLoader.active = false
-            }
-        }
-    }
 }

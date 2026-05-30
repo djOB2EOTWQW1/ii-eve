@@ -14,7 +14,7 @@ Item {
     property var tagInputField
     signal searchRequested(string text)
 
-    readonly property var recent: (Persistent.states.booru.searchHistory ?? []).slice(0, 3)
+    readonly property var recent: Persistent.states.booru.searchHistory ?? []
 
     ColumnLayout {
         anchors {
