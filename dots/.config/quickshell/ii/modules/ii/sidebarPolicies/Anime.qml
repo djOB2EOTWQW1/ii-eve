@@ -620,6 +620,29 @@ Item {
 
                 Item { Layout.fillWidth: true }
 
+                RippleButton { // Clear recent searches
+                    implicitWidth: 34
+                    implicitHeight: 34
+                    buttonRadius: Appearance.rounding.full
+                    colBackground: Appearance.colors.colLayer2
+                    colBackgroundHover: Appearance.colors.colLayer2Hover
+                    enabled: (Persistent.states.booru.searchHistory ?? []).length > 0
+                    onClicked: {
+                        Persistent.states.booru.searchHistory = []
+                    }
+
+                    StyledToolTip {
+                        text: Translation.tr("Clear recent")
+                    }
+
+                    contentItem: MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "history"
+                        iconSize: 20
+                        color: parent.enabled ? Appearance.colors.colOnLayer2 : Appearance.colors.colOnLayer2Disabled
+                    }
+                }
+
                 RippleButton { // Clear
                     implicitWidth: 34
                     implicitHeight: 34
