@@ -12,7 +12,6 @@ import Quickshell
 Item {
     id: root
     property var tagInputField
-    signal searchRequested(string text)
 
     readonly property var recent: Persistent.states.booru.searchHistory ?? []
 

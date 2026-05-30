@@ -304,7 +304,6 @@ Item {
                 visible: active
                 sourceComponent: AnimeComponents.BooruWelcome {
                     tagInputField: root.inputField
-                    onSearchRequested: (text) => root.handleInput(text)
                 }
             }
 

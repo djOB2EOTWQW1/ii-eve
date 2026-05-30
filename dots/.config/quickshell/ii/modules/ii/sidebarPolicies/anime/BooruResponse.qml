@@ -276,8 +276,15 @@ Rectangle {
             implicitHeight: 38
 
             onClicked: {
-                tagInputField.text = `${responseData.tags.join(" ")} ${parseInt(root.responseData.page) + 1}`
-                tagInputField.accept()
+                // Defer: accept() adds a response which can rebuild this list's
+                // delegates (and destroy this card) mid-handler. Capture the field
+                // and the text first, then run after the click unwinds.
+                const field = tagInputField
+                const searchText = `${responseData.tags.join(" ")} ${parseInt(root.responseData.page) + 1}`
+                Qt.callLater(() => {
+                    field.text = searchText
+                    field.accept()
+                })
             }
 
             buttonRadius: Appearance.rounding.normal
