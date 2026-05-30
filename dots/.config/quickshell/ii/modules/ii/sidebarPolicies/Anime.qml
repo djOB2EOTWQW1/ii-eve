@@ -383,6 +383,20 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
 
+                        Rectangle {
+                            implicitWidth: 30
+                            implicitHeight: 30
+                            radius: Appearance.rounding.small
+                            color: Appearance.colors.colSecondaryContainer
+                            Layout.alignment: Qt.AlignVCenter
+                            MaterialSymbol {
+                                anchors.centerIn: parent
+                                text: "history"
+                                iconSize: 18
+                                color: Appearance.colors.colOnSecondaryContainer
+                            }
+                        }
+
                         StyledText {
                             text: Translation.tr("Recent Searches")
                             font.pixelSize: Appearance.font.pixelSize.normal
@@ -436,8 +450,8 @@ Item {
                             required property var modelData
                             anchors.left: parent?.left
                             anchors.right: parent?.right
-                            implicitHeight: historyRow.implicitHeight + 16
-                            buttonRadius: Appearance.rounding.small
+                            implicitHeight: historyRow.implicitHeight + 18
+                            buttonRadius: Appearance.rounding.normal
                             colBackground: Appearance.colors.colLayer1
                             colBackgroundHover: Appearance.colors.colLayer1Hover
 
