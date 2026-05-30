@@ -207,7 +207,7 @@ Item {
             );
 
             hist.unshift(historyEntry);
-            Persistent.states.booru.searchHistory = hist.slice(0, 10);
+            Persistent.states.booru.searchHistory = hist.slice(0, 13);
 
             Booru.makeRequest(tagList, Persistent.states.booru.allowNsfw, Config.options.sidebar.booru.limit, pageIndex);
         }
