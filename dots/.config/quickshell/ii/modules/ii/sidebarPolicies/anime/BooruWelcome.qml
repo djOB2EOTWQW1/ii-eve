@@ -132,13 +132,14 @@ Item {
                     buttonText: modelData
                     colBackground: Appearance.colors.colSecondaryContainer
                     onClicked: {
-                        // Defer: searching empties the welcome (responses populate ->
-                        // welcomeLoader.active=false), destroying this delegate. Running
-                        // it inline would free the JS context mid-handler and crash.
+                        // Searching populates responses -> welcomeLoader.active=false ->
+                        // this delegate (and root) get destroyed. Capture the Anime-owned
+                        // input field (which survives) and defer; never touch root after.
+                        const field = root.tagInputField
                         const tag = modelData
                         Qt.callLater(() => {
-                            root.tagInputField.text = tag
-                            root.searchRequested(tag)
+                            field.text = tag
+                            field.accept()
                         })
                     }
                 }
@@ -177,13 +178,15 @@ Item {
                     const entry = modelData
                     const searchText = entry.tags.join(" ") + (entry.page > 1 ? " " + entry.page : "")
                     const targetProvider = (entry.provider && entry.provider !== Booru.currentProvider) ? entry.provider : ""
-                    // Defer: searching empties the welcome (responses populate ->
-                    // welcomeLoader.active=false), destroying this delegate. Running
-                    // it inline would free the JS context mid-handler and crash.
+                    // Searching/changing provider populates responses -> welcome (and root)
+                    // get destroyed. Capture the Anime-owned field (survives), set the
+                    // provider directly via Persistent (no system message), then defer the
+                    // search through the field. Never touch root after this point.
+                    const field = root.tagInputField
                     Qt.callLater(() => {
-                        if (targetProvider) Booru.setProvider(targetProvider)
-                        root.tagInputField.text = searchText
-                        root.searchRequested(searchText)
+                        if (targetProvider) Persistent.states.booru.provider = targetProvider
+                        field.text = searchText
+                        field.accept()
                     })
                 }
 
