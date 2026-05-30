@@ -29,6 +29,7 @@ Rectangle {
 
         RowLayout { // Header
             Layout.fillWidth: true
+            Layout.rightMargin: 34 // leave room for the close button overlapping bottom-right
             MaterialSymbol {
                 text: "sell"
                 iconSize: 16
@@ -40,19 +41,6 @@ Rectangle {
                 color: Appearance.colors.colOnLayer1
             }
             Item { Layout.fillWidth: true }
-            RippleButton {
-                implicitWidth: 24
-                implicitHeight: 24
-                buttonRadius: Appearance.rounding.full
-                colBackground: ColorUtils.transparentize(Appearance.m3colors.m3onSurface, 0.85)
-                onClicked: root.closeRequested()
-                contentItem: MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: "close"
-                    iconSize: 14
-                    color: Appearance.colors.colOnLayer1
-                }
-            }
         }
 
         StyledFlickable { // Scrollable tag list
@@ -79,6 +67,26 @@ Rectangle {
                     }
                 }
             }
+        }
+    }
+
+    RippleButton { // Close — sits where the tags button was tapped
+        anchors {
+            right: parent.right
+            bottom: parent.bottom
+            margins: 8
+        }
+        implicitWidth: 30
+        implicitHeight: 30
+        buttonRadius: Appearance.rounding.full
+        colBackground: Appearance.colors.colPrimary
+        colBackgroundHover: Appearance.colors.colPrimary
+        onClicked: root.closeRequested()
+        contentItem: MaterialSymbol {
+            anchors.centerIn: parent
+            text: "close"
+            iconSize: Appearance.font.pixelSize.large
+            color: Appearance.colors.colOnPrimary
         }
     }
 }
