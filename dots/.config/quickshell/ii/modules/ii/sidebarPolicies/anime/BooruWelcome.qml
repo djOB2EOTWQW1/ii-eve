@@ -132,8 +132,14 @@ Item {
                     buttonText: modelData
                     colBackground: Appearance.colors.colSecondaryContainer
                     onClicked: {
-                        root.tagInputField.text = modelData
-                        root.searchRequested(modelData)
+                        // Defer: searching empties the welcome (responses populate ->
+                        // welcomeLoader.active=false), destroying this delegate. Running
+                        // it inline would free the JS context mid-handler and crash.
+                        const tag = modelData
+                        Qt.callLater(() => {
+                            root.tagInputField.text = tag
+                            root.searchRequested(tag)
+                        })
                     }
                 }
             }
@@ -170,11 +176,15 @@ Item {
                 onClicked: {
                     const entry = modelData
                     const searchText = entry.tags.join(" ") + (entry.page > 1 ? " " + entry.page : "")
-                    if (entry.provider && entry.provider !== Booru.currentProvider) {
-                        Booru.setProvider(entry.provider)
-                    }
-                    root.tagInputField.text = searchText
-                    root.searchRequested(searchText)
+                    const targetProvider = (entry.provider && entry.provider !== Booru.currentProvider) ? entry.provider : ""
+                    // Defer: searching empties the welcome (responses populate ->
+                    // welcomeLoader.active=false), destroying this delegate. Running
+                    // it inline would free the JS context mid-handler and crash.
+                    Qt.callLater(() => {
+                        if (targetProvider) Booru.setProvider(targetProvider)
+                        root.tagInputField.text = searchText
+                        root.searchRequested(searchText)
+                    })
                 }
 
                 contentItem: RowLayout {
