@@ -439,8 +439,12 @@ Singleton {
         }
 
         try {
-            // Required for danbooru, konachan and t.alcy.cc
-            if (["danbooru", "konachan", "t.alcy.cc"].includes(currentProvider)) {
+            // danbooru rejects generic browser UAs; needs a descriptive client UA
+            if (currentProvider == "danbooru") {
+                xhr.setRequestHeader("User-Agent", "Quickshell-Booru/1.0")
+            }
+            // Required for konachan and t.alcy.cc
+            else if (["konachan", "t.alcy.cc"].includes(currentProvider)) {
                 xhr.setRequestHeader("User-Agent", defaultUserAgent)
             }
             else if (currentProvider == "zerochan") {
@@ -495,8 +499,12 @@ Singleton {
         }
 
         try {
-            // Required for danbooru and konachan
-            if (["danbooru", "konachan"].includes(currentProvider)) {
+            // danbooru rejects generic browser UAs; needs a descriptive client UA
+            if (currentProvider == "danbooru") {
+                xhr.setRequestHeader("User-Agent", "Quickshell-Booru/1.0")
+            }
+            // Required for konachan
+            else if (currentProvider == "konachan") {
                 xhr.setRequestHeader("User-Agent", defaultUserAgent)
             }
             xhr.send()
