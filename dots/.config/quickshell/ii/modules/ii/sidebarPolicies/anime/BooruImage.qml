@@ -114,18 +114,18 @@ Button {
                 colBackground: ColorUtils.transparentize(Appearance.m3colors.m3surface, 0.3)
                 colBackgroundHover: ColorUtils.transparentize(ColorUtils.mix(Appearance.m3colors.m3surface, Appearance.m3colors.m3onSurface, 0.8), 0.2)
                 colRipple: ColorUtils.transparentize(ColorUtils.mix(Appearance.m3colors.m3surface, Appearance.m3colors.m3onSurface, 0.6), 0.1)
-                property string icon: ""
-                property color iconColor: Appearance.m3colors.m3onSurface
+                property string symbolName: ""
+                property color symbolColor: Appearance.m3colors.m3onSurface
                 contentItem: MaterialSymbol {
                     anchors.centerIn: parent
-                    text: parent.icon
+                    text: parent.symbolName
                     iconSize: Appearance.font.pixelSize.large
-                    color: parent.iconColor
+                    color: parent.symbolColor
                 }
             }
 
             ImgActionButton { // Download
-                icon: "download"
+                symbolName: "download"
                 onClicked: {
                     const targetPath = root.imageData.is_nsfw ? root.nsfwPath : root.downloadPath;
                     const isGelbooru = root.imageData.file_url.includes("gelbooru.com");
@@ -140,7 +140,7 @@ Button {
             }
 
             ImgActionButton { // Open source / link
-                icon: "open_in_new"
+                symbolName: "open_in_new"
                 onClicked: {
                     const url = (root.imageData.source && root.imageData.source.length > 0)
                         ? root.imageData.source : root.imageData.file_url
@@ -153,7 +153,7 @@ Button {
             Item { Layout.fillWidth: true }
 
             ImgActionButton { // Favorite
-                icon: "favorite"
+                symbolName: "favorite"
                 visible: (root.imageData.file_url.includes("gelbooru.com") && Booru.apiKeys["gelbooru_pass_hash"]) ||
                     (root.imageData.file_url.includes("donmai.us") && Booru.apiKeys["danbooru"] && Booru.apiKeys["danbooru_user_id"])
                 onClicked: {
@@ -172,8 +172,8 @@ Button {
             }
 
             ImgActionButton { // Tags
-                icon: "sell"
-                iconColor: root.showTags ? Appearance.colors.colOnPrimary : Appearance.m3colors.m3onSurface
+                symbolName: "sell"
+                symbolColor: root.showTags ? Appearance.colors.colOnPrimary : Appearance.m3colors.m3onSurface
                 colBackground: root.showTags ? Appearance.colors.colPrimary : ColorUtils.transparentize(Appearance.m3colors.m3surface, 0.3)
                 onClicked: root.showTags = !root.showTags
             }
