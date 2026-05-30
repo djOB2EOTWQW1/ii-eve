@@ -146,16 +146,37 @@ Item {
         }
 
         StyledText { // Recent label
-            visible: root.recent.length > 0
             text: Translation.tr("Recent")
             font.pixelSize: Appearance.font.pixelSize.smaller
             color: Appearance.colors.colSubtext
             Layout.leftMargin: 4
         }
 
-        StyledListView { // Recent searches (inline)
+        Item { // Recent container — always fills remaining height so layout stays put
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            ColumnLayout { // Empty placeholder
+                visible: root.recent.length === 0
+                anchors.centerIn: parent
+                spacing: 6
+
+                MaterialSymbol {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "history"
+                    iconSize: 40
+                    color: Appearance.colors.colSubtext
+                }
+                StyledText {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: Translation.tr("No recent searches")
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colSubtext
+                }
+            }
+
+            StyledListView { // Recent searches (inline)
+            anchors.fill: parent
             visible: root.recent.length > 0
             clip: true
             spacing: 6
@@ -218,6 +239,7 @@ Item {
                         color: Appearance.colors.colSubtext
                     }
                 }
+            }
             }
         }
     }
