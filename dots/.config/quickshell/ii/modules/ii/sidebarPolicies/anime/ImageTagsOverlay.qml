@@ -78,12 +78,14 @@ Rectangle {
         }
         implicitWidth: 30
         implicitHeight: 30
+        padding: 0
         buttonRadius: Appearance.rounding.full
         colBackground: Appearance.colors.colPrimary
         colBackgroundHover: Appearance.colors.colPrimary
         onClicked: root.closeRequested()
         contentItem: MaterialSymbol {
-            anchors.centerIn: parent
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
             text: "close"
             iconSize: Appearance.font.pixelSize.large
             color: Appearance.colors.colOnPrimary

@@ -623,6 +623,7 @@ Item {
                 RippleButton { // Clear recent searches
                     implicitWidth: 34
                     implicitHeight: 34
+                    padding: 0
                     buttonRadius: Appearance.rounding.full
                     colBackground: Appearance.colors.colLayer2
                     colBackgroundHover: Appearance.colors.colLayer2Hover
@@ -636,7 +637,8 @@ Item {
                     }
 
                     contentItem: MaterialSymbol {
-                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                         text: "history"
                         iconSize: 20
                         color: parent.enabled ? Appearance.colors.colOnLayer2 : Appearance.colors.colOnLayer2Disabled
@@ -646,6 +648,7 @@ Item {
                 RippleButton { // Clear
                     implicitWidth: 34
                     implicitHeight: 34
+                    padding: 0
                     buttonRadius: Appearance.rounding.full
                     colBackground: Appearance.colors.colLayer2
                     colBackgroundHover: Appearance.colors.colLayer2Hover
@@ -659,7 +662,8 @@ Item {
                     }
 
                     contentItem: MaterialSymbol {
-                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                         text: "delete_sweep"
                         iconSize: 20
                         color: Appearance.colors.colOnLayer2

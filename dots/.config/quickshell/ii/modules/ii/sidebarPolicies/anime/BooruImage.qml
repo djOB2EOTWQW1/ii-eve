@@ -108,8 +108,10 @@ Button {
             }
 
             component ImgActionButton: RippleButton {
+                id: actionBtn
                 implicitWidth: 30
                 implicitHeight: 30
+                padding: 0
                 buttonRadius: Appearance.rounding.full
                 colBackground: ColorUtils.transparentize(Appearance.m3colors.m3surface, 0.3)
                 colBackgroundHover: ColorUtils.transparentize(ColorUtils.mix(Appearance.m3colors.m3surface, Appearance.m3colors.m3onSurface, 0.8), 0.2)
@@ -117,10 +119,11 @@ Button {
                 property string symbolName: ""
                 property color symbolColor: Appearance.m3colors.m3onSurface
                 contentItem: MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: parent.symbolName
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: actionBtn.symbolName
                     iconSize: Appearance.font.pixelSize.large
-                    color: parent.symbolColor
+                    color: actionBtn.symbolColor
                 }
             }
 
