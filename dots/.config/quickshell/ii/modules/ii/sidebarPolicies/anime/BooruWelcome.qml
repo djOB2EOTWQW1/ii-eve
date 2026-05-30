@@ -18,9 +18,7 @@ Item {
 
     ColumnLayout {
         anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
+            fill: parent
             margins: 4
         }
         spacing: 12
@@ -149,11 +147,21 @@ Item {
             Layout.leftMargin: 4
         }
 
-        Repeater { // Recent searches (inline)
-            model: root.recent
+        StyledListView { // Recent searches (inline)
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: root.recent.length > 0
+            clip: true
+            spacing: 6
+
+            model: ScriptModel {
+                values: root.recent
+            }
+
             delegate: RippleButton {
                 required property var modelData
-                Layout.fillWidth: true
+                anchors.left: parent?.left
+                anchors.right: parent?.right
                 implicitHeight: recentRow.implicitHeight + 18
                 buttonRadius: Appearance.rounding.small
                 colBackground: Appearance.colors.colLayer1
