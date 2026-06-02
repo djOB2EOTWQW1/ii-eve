@@ -31,6 +31,11 @@ Item {
     readonly property string folderId: delegateRoot.modelData?.id ?? ""
     readonly property bool isSelected: !delegateRoot.isFolder
         && (delegateRoot.launcher?.selectedAppIndices?.indexOf(delegateRoot.entryIndex) ?? -1) >= 0
+    readonly property bool appRunning: {
+        const _w = HyprlandData.windowList   // subscribe for reactivity
+        return !delegateRoot.isFolder && !!delegateRoot.modelData?.path
+            && CustomApps.isPathRunning(delegateRoot.modelData.path)
+    }
     readonly property var folderPreviewIcons: delegateRoot.isFolder
         ? CustomApps.folderPreviewIcons(delegateRoot.modelData, 4)
         : []
@@ -349,6 +354,18 @@ Item {
                 iconSize: 13
                 color: Appearance.colors.colOnPrimary
             }
+        }
+
+        Rectangle {
+            visible: delegateRoot.appRunning && !delegateRoot.isSelected
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottomMargin: 5
+            implicitWidth: 6
+            implicitHeight: 6
+            radius: height / 2
+            color: Appearance.colors.colPrimary
+            z: 3
         }
 
         Rectangle {
