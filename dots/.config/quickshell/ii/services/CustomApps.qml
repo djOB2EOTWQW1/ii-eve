@@ -7,6 +7,7 @@ import qs.services
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 
 /**
  * Stores user-added binaries/applications (native, .AppImage, .exe, ...) in a
@@ -676,6 +677,34 @@ Singleton {
         try { return JSON.parse(lp.perAppJson || "{}") } catch (e) { return ({}) }
     }
 
+    readonly property var launchStatsMap: {
+        const al = Persistent.states.appLauncher
+        if (!al) return ({})
+        try { return JSON.parse(al.launchStatsJson || "{}") } catch (e) { return ({}) }
+    }
+
+    function _writeLaunchStats(map) {
+        const al = Persistent.states.appLauncher
+        if (!al) return
+        al.launchStatsJson = JSON.stringify(map)
+    }
+
+    function _recordLaunch(path) {
+        if (!path) return
+        const map = Object.assign({}, root.launchStatsMap)
+        const cur = map[path] || { count: 0, last: 0 }
+        map[path] = { count: (cur.count || 0) + 1, last: Date.now() }
+        root._writeLaunchStats(map)
+    }
+
+    function _touchLast(path) {
+        if (!path) return
+        const map = Object.assign({}, root.launchStatsMap)
+        const cur = map[path] || { count: 0, last: 0 }
+        map[path] = { count: cur.count || 0, last: Date.now() }
+        root._writeLaunchStats(map)
+    }
+
     // Builds the wrapper-prefix that prepends `path` in the bash invocation
     // assembled by launch().
     //
@@ -729,10 +758,12 @@ Singleton {
         if (lower.endsWith('.exe')) {
             if (root.portprotonPresent) {
                 Quickshell.execDetached({ command: [...envPrefix, "portproton", "--launch", path] })
+                root._recordLaunch(path)
                 return
             }
             if (root.winePresent) {
                 Quickshell.execDetached({ command: [...envPrefix, "wine", path] })
+                root._recordLaunch(path)
                 return
             }
             console.warn("[CustomApps] cannot launch .exe: neither portproton nor wine is installed:", path)
@@ -750,6 +781,7 @@ Singleton {
             command: [...envPrefix, "bash", "-c",
                 `chmod +x ${quoted} 2>/dev/null; cd ${dir} 2>/dev/null; ${cmdBody}`]
         })
+        root._recordLaunch(path)
     }
 
     Timer { id: writeTimer; interval: 100; repeat: false; onTriggered: fileView.writeAdapter() }
