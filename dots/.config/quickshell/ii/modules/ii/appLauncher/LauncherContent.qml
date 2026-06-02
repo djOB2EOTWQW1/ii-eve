@@ -53,6 +53,10 @@ MouseArea {
         searchField.forceActiveFocus()
     }
     readonly property bool searchActive: searchText.length > 0
+    readonly property bool recentsStripVisible: !root.searchActive
+        && !root.selectionModeActive
+        && appGrid.count > 0
+        && CustomApps.recentApps.length > 0
 
     function launchFirstMatch() {
         const gm = root.gridModel
@@ -594,6 +598,20 @@ MouseArea {
             }
         }
 
+        Loader {
+            id: recentsStripLoader
+            anchors.top: headerBar.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 14
+            anchors.rightMargin: 14
+            active: root.recentsStripVisible
+            visible: active
+            sourceComponent: LauncherRecentsStrip {
+                launcher: root
+            }
+        }
+
         Item {
             anchors.fill: parent
             visible: appGrid.count === 0 && !root.externalDragHover
@@ -626,6 +644,7 @@ MouseArea {
             anchors.fill: parent
             anchors.margins: 14
             anchors.topMargin: headerBar.height + 4
+                + (root.recentsStripVisible ? recentsStripLoader.implicitHeight + 6 : 0)
             anchors.bottomMargin: searchToolbar.visible ? searchToolbar.height + 28 : 14
             visible: count > 0
             readonly property int columns: Math.max(1, Math.floor(width / (root.iconSize + 76)))
