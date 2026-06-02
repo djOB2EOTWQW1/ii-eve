@@ -705,6 +705,70 @@ Singleton {
         root._writeLaunchStats(map)
     }
 
+    function _norm(s) {
+        return String(s || "").trim().toLowerCase()
+    }
+
+    // Open Hyprland windows that belong to `path`. Uses the per-app matchClass
+    // override when set, otherwise a heuristic from the basename stem + entry
+    // name. A window matches when a candidate equals or is a substring of its
+    // class / initialClass / title (all normalized).
+    function runningWindowsForPath(path) {
+        if (!path) return []
+        const candidates = []
+        const override = root.perAppMap[path]?.matchClass
+        if (override && String(override).trim().length > 0) {
+            candidates.push(root._norm(override))
+        } else {
+            const basename = String(path).split('/').pop()
+            const _d = basename.lastIndexOf('.')
+            const stem = (_d > 0) ? basename.substring(0, _d) : basename
+            const ns = root._norm(stem)
+            if (ns.length > 0) candidates.push(ns)
+            const idx = root.indexOfPath(path)
+            if (idx >= 0) {
+                const nm = root._norm(root.entries[idx]?.name)
+                if (nm.length > 0 && candidates.indexOf(nm) < 0) candidates.push(nm)
+            }
+        }
+        if (candidates.length === 0) return []
+
+        const out = []
+        const wins = HyprlandData.windowList || []
+        for (let i = 0; i < wins.length; i++) {
+            const w = wins[i]
+            const fields = [root._norm(w.class), root._norm(w.initialClass), root._norm(w.title)]
+            let matched = false
+            for (let c = 0; c < candidates.length && !matched; c++) {
+                const cand = candidates[c]
+                for (let f = 0; f < fields.length; f++) {
+                    const fv = fields[f]
+                    if (fv.length > 0 && (fv === cand || fv.indexOf(cand) >= 0)) { matched = true; break }
+                }
+            }
+            if (matched) out.push(w)
+        }
+        return out
+    }
+
+    function isPathRunning(path) {
+        return root.runningWindowsForPath(path).length > 0
+    }
+
+    // Focus an existing window if the app is already running, else launch.
+    // Addresses in HyprlandData.windowList (hyprctl clients -j) already carry
+    // the 0x prefix; same dispatch as Overview (OverviewWidget.qml:518).
+    function activate(entry) {
+        if (!entry || !entry.path) return
+        const wins = root.runningWindowsForPath(entry.path)
+        if (wins.length > 0) {
+            Hyprland.dispatch(`hl.dsp.focus({window = "address:${wins[0].address}"})`)
+            root._touchLast(entry.path)
+            return
+        }
+        root.launch(entry)
+    }
+
     // Builds the wrapper-prefix that prepends `path` in the bash invocation
     // assembled by launch().
     //
