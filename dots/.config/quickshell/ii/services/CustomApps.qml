@@ -769,6 +769,43 @@ Singleton {
         root.launch(entry)
     }
 
+    function _statsEntriesList() {
+        const map = root.launchStatsMap
+        const out = []
+        for (let i = 0; i < root.entries.length; i++) {
+            const e = root.entries[i]
+            if (!e || !e.path) continue
+            const st = map[e.path]
+            if (!st) continue
+            out.push({
+                name: e.name,
+                path: e.path,
+                icon: e.icon,
+                gpu: e.gpu,
+                _originalIndex: i,
+                _count: st.count || 0,
+                _last: st.last || 0
+            })
+        }
+        return out
+    }
+
+    readonly property var recentApps: {
+        root.entries
+        root.launchStatsMap
+        const arr = root._statsEntriesList()
+        arr.sort((a, b) => b._last - a._last)
+        return arr.slice(0, 12)
+    }
+
+    readonly property var frequentApps: {
+        root.entries
+        root.launchStatsMap
+        const arr = root._statsEntriesList()
+        arr.sort((a, b) => b._count - a._count)
+        return arr.slice(0, 12)
+    }
+
     // Builds the wrapper-prefix that prepends `path` in the bash invocation
     // assembled by launch().
     //
