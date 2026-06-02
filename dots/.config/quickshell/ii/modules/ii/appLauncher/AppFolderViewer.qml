@@ -555,7 +555,7 @@ Item {
                                 return;
                             }
                             if (folderAppTile.Drag.active) return;
-                            CustomApps.launch(folderAppDelegate.modelData)
+                            CustomApps.activate(folderAppDelegate.modelData)
                             GlobalStates.appLauncherOpen = false
                             root.closed()
                         }

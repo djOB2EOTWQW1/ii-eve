@@ -64,7 +64,7 @@ MouseArea {
             return
         }
         if (root.selectionModeActive) return
-        CustomApps.launch(first)
+        CustomApps.activate(first)
         GlobalStates.appLauncherOpen = false
     }
 
@@ -377,7 +377,7 @@ MouseArea {
             const eIdx = gm._originalIndex ?? -1
             if (eIdx >= 0) toggleAppSelection(eIdx)
         } else {
-            CustomApps.launch(gm)
+            CustomApps.activate(gm)
             GlobalStates.appLauncherOpen = false
         }
     }
@@ -444,7 +444,7 @@ MouseArea {
             const origIdx = apps[appIndex]._originalIndex ?? -1
             if (origIdx >= 0) folderViewer.item?.toggleAppSelection(origIdx)
         } else {
-            CustomApps.launch(apps[appIndex])
+            CustomApps.activate(apps[appIndex])
             GlobalStates.appLauncherOpen = false
             folderViewer.close()
         }

@@ -435,7 +435,7 @@ Item {
                     return
                 }
                 if (!appTile.Drag.active) {
-                    CustomApps.launch(delegateRoot.modelData)
+                    CustomApps.activate(delegateRoot.modelData)
                     GlobalStates.appLauncherOpen = false
                 }
             }
