@@ -40,7 +40,8 @@ ContentPage {
             perAppSection._writePerApp(
                 perAppSection.selectedPath,
                 perAppSection.selectedEntry?.params ?? "",
-                !cur
+                !cur,
+                perAppSection.selectedEntry?.matchClass ?? ""
             )
         }
     }
@@ -208,18 +209,20 @@ ContentPage {
 
         readonly property var selectedEntry: CustomApps.perAppMap[perAppSection.selectedPath] || null
 
-        function _writePerApp(path, params, useDefaults) {
+        function _writePerApp(path, params, useDefaults, matchClass) {
             if (!page.lp || !path) return
             const trimmed = String(params || "").trim()
+            const cls = String(matchClass || "").trim()
             let next = {}
             try { next = JSON.parse(page.lp.perAppJson || "{}") } catch (e) {}
-            // Empty entry with useDefaults=true is the implicit default state,
-            // so we drop the record. useDefaults=false is meaningful — it
-            // explicitly opts the binary out of defaults — and must persist.
-            if (trimmed.length === 0 && useDefaults) {
+            // Drop the record only when it carries no meaningful data: empty
+            // params, defaults left on, and no class override.
+            if (trimmed.length === 0 && useDefaults && cls.length === 0) {
                 delete next[path]
             } else {
-                next[path] = { params: trimmed, useDefaults: !!useDefaults }
+                const rec = { params: trimmed, useDefaults: !!useDefaults }
+                if (cls.length > 0) rec.matchClass = cls
+                next[path] = rec
             }
             page.lp.perAppJson = JSON.stringify(next)
         }
@@ -437,7 +440,8 @@ ContentPage {
                     perAppSection._writePerApp(
                         perAppSection.selectedPath,
                         paramsInput.text,
-                        cur?.useDefaults ?? true
+                        cur?.useDefaults ?? true,
+                        cur?.matchClass ?? ""
                     )
                 }
                 Timer {
@@ -484,7 +488,8 @@ ContentPage {
                 perAppSection._writePerApp(
                     perAppSection.selectedPath,
                     perAppSection.selectedEntry?.params ?? "",
-                    checked
+                    checked,
+                    perAppSection.selectedEntry?.matchClass ?? ""
                 )
             }
 
@@ -496,6 +501,75 @@ ContentPage {
                 hintText: page.vimiumHints[4] ?? ""
                 typedText: page.vimiumTyped
                 vimiumActive: page.vimiumActive
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.topMargin: 6
+            implicitHeight: classInput.implicitHeight + 18
+            radius: Appearance.rounding.normal
+            color: Appearance.colors.colLayer1
+            opacity: perAppSection.selectedPath.length > 0 ? 1 : 0.4
+            enabled: perAppSection.selectedPath.length > 0
+            border.width: classInput.activeFocus ? 2 : 1
+            border.color: classInput.activeFocus
+                ? Appearance.colors.colPrimary
+                : ColorUtils.transparentize(Appearance.colors.colOnLayer1, 0.85)
+
+            Behavior on border.color {
+                animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+            }
+
+            StyledTextInput {
+                id: classInput
+                anchors.fill: parent
+                anchors.margins: 10
+                verticalAlignment: TextInput.AlignVCenter
+                clip: true
+                text: perAppSection.selectedEntry?.matchClass ?? ""
+
+                function _flushSave() {
+                    classSaveDebounce.stop()
+                    if (perAppSection.selectedPath.length === 0) return
+                    const cur = perAppSection.selectedEntry
+                    const curCls = String(cur?.matchClass ?? "").trim()
+                    const newCls = String(classInput.text || "").trim()
+                    if (newCls === curCls) return
+                    perAppSection._writePerApp(
+                        perAppSection.selectedPath,
+                        cur?.params ?? "",
+                        cur?.useDefaults ?? true,
+                        classInput.text
+                    )
+                }
+                Timer {
+                    id: classSaveDebounce
+                    interval: 250
+                    repeat: false
+                    onTriggered: classInput._flushSave()
+                }
+                onTextChanged: {
+                    if (perAppSection.selectedPath.length === 0) return
+                    classSaveDebounce.restart()
+                }
+                onEditingFinished: classInput._flushSave()
+                Keys.onEscapePressed: {
+                    classInput._flushSave()
+                    classInput.focus = false
+                }
+                Component.onDestruction: classInput._flushSave()
+            }
+
+            StyledText {
+                anchors.left: parent.left
+                anchors.leftMargin: 10 + (classInput.padding ?? 0)
+                anchors.verticalCenter: parent.verticalCenter
+                visible: classInput.text.length === 0 && !classInput.activeFocus
+                text: Translation.tr("Window class (match)")
+                color: Appearance.colors.colSubtext
+                opacity: 0.7
+                font.pixelSize: classInput.font.pixelSize
             }
         }
     }
