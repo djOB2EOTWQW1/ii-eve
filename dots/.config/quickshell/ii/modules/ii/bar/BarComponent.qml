@@ -56,7 +56,8 @@ Item {
             "bluetooth_devices": [bluetoothComp, bluetoothCompVert, bluetoothCompExpressive, bluetoothCompExpressive],
             "keyboard_layout": [keyboardComp, keyboardCompVert, keyboardCompExpressive, keyboardCompExpressive],
             "sports": [sportsComp, sportsComp, sportsCompExpressive, sportsCompExpressive],
-            "power": [powerComp, powerComp, powerCompExpressive, powerCompExpressive]
+            "power": [powerComp, powerComp, powerCompExpressive, powerCompExpressive],
+            "network_speed": [networkSpeedComp, networkSpeedComp]
         })
 
     readonly property bool isMinimal: {
@@ -313,6 +314,12 @@ Item {
     Component {
         id: dashboardPanelButtonVert
         VerticalDashboardPanelButton {}
+    }
+    Component {
+        id: networkSpeedComp
+        NetworkSpeed {
+            vertical: rootItem.vertical
+        }
     }
 
     Component {

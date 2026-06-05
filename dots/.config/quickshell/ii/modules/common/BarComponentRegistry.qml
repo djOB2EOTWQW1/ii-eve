@@ -24,7 +24,8 @@ Singleton {
         { id: "bluetooth_devices", icon: "bluetooth", title: "Bluetooth devices" },
         { id: "keyboard_layout", icon: "keyboard", title: "Keyboard layout" },
         { id: "sports", icon: "sports_soccer", title: "Sports" },
-        { id: "power", icon: "power_settings_new", title: "Power" }
+        { id: "power", icon: "power_settings_new", title: "Power" },
+        { id: "network_speed", icon: "speed", title: "Network speed" },
     ]
 
     function getComponent(id) {
