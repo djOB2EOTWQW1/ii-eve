@@ -36,13 +36,16 @@ SETUP_FLAGS=""
 
 if [ -d "$BASE_DIR" ]; then
     cd "$BASE_DIR"
-    if [[ "$VERBOSE" == "true" ]]; then
-        git pull
+    if [[ "$DO_PULL" == "true" ]]; then
+        if [[ "$VERBOSE" == "true" ]]; then
+            git pull
+        else
+            git pull > /dev/null 2>&1
+        fi
+        echo -e "${GREEN}Eve repo updated successfully!${NC}"
     else
-        git pull > /dev/null 2>&1
+        echo -e "${YELLOW}Skipping git pull (--no-pull flag used)${NC}"
     fi
-    
-    echo -e "${GREEN}Eve repo updated successfully!${NC}"
     
     bash setup-ii-eve.sh $SETUP_FLAGS
 else
