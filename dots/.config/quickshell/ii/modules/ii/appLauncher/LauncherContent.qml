@@ -8,7 +8,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
-import "vimium/LauncherVimium.js" as LV
 
 // Main launcher surface: header bar, app/folder grid, settings overlay,
 // folder viewer, context menu, rename dialog, external-drop receiver.

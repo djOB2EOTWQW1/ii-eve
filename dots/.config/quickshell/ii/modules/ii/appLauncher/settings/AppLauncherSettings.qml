@@ -35,8 +35,6 @@ Item {
         }
     ]
 
-    readonly property var activePageItem: pageLoader.item
-
     ColumnLayout {
         anchors {
             fill: parent
