@@ -105,12 +105,28 @@ Item {
             }
         }
 
-        VimiumHintLabel {
+        VimiumTarget {
             x: 12
             y: 12
-            hintText: delegateRoot.launcher?.vimiumHints[delegateRoot.index + 2] ?? ""
-            typedText: delegateRoot.launcher?.vimiumTyped ?? ""
-            vimiumActive: delegateRoot.launcher?.vimiumActive ?? false
+            registry: delegateRoot.launcher?.mainRegistry ?? null
+            participates: delegateRoot.launcher
+                ? !(delegateRoot.launcher.selectionModeActive && delegateRoot.isFolder)
+                : true
+            onActivated: {
+                const l = delegateRoot.launcher
+                if (!l) return
+                if (delegateRoot.isFolder) {
+                    if (l.selectionModeActive) return
+                    delegateRoot.openFolderRequested(delegateRoot.modelData)
+                    return
+                }
+                if (l.selectionModeActive) {
+                    if (delegateRoot.entryIndex >= 0) l.toggleAppSelection(delegateRoot.entryIndex)
+                    return
+                }
+                CustomApps.activate(delegateRoot.modelData)
+                GlobalStates.appLauncherOpen = false
+            }
         }
 
     // Android 16 style folder tile: rounded-square preview container
