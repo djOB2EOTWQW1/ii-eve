@@ -16,10 +16,6 @@ Item {
 
     property var registry: null
 
-    property bool vimiumActive: false
-    property string vimiumTyped: ""
-    property var vimiumHints: []
-
     signal closed()
 
     function toggleNavExpand() {
@@ -40,11 +36,6 @@ Item {
     ]
 
     readonly property var activePageItem: pageLoader.item
-    readonly property int activeVimiumActionCount: activePageItem?.vimiumActionCount ?? 0
-    function dispatchActiveVimium(localIdx) {
-        if (activePageItem && typeof activePageItem.dispatchVimiumAction === "function")
-            activePageItem.dispatchVimiumAction(localIdx)
-    }
 
     ColumnLayout {
         anchors {
@@ -69,14 +60,13 @@ Item {
                     iconSize: 20
                 }
 
-                VimiumHintLabel {
+                VimiumTarget {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.rightMargin: -5
                     anchors.topMargin: -5
-                    hintText: root.vimiumHints[0] ?? ""
-                    typedText: root.vimiumTyped
-                    vimiumActive: root.vimiumActive
+                    registry: root.registry
+                    onActivated: root.closed()
                 }
             }
 
@@ -118,14 +108,13 @@ Item {
                     expanded: root.width > 700
 
                     NavigationRailExpandButton {
-                    VimiumHintLabel {
+                    VimiumTarget {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.rightMargin: -5
                         anchors.topMargin: -5
-                        hintText: root.vimiumHints[1] ?? ""
-                        typedText: root.vimiumTyped
-                        vimiumActive: root.vimiumActive
+                        registry: root.registry
+                        onActivated: root.toggleNavExpand()
                     }
                 }
 
@@ -144,12 +133,11 @@ Item {
                                 buttonText: modelData.name
                                 showToggledHighlight: false
 
-                                VimiumHintLabel {
+                                VimiumTarget {
                                     x: 2
                                     y: 2
-                                    hintText: root.vimiumHints[index + 2] ?? ""
-                                    typedText: root.vimiumTyped
-                                    vimiumActive: root.vimiumActive
+                                    registry: root.registry
+                                    onActivated: root.currentPage = index
                                 }
                             }
                         }
@@ -177,11 +165,7 @@ Item {
                     }
 
                     onLoaded: {
-                        if (item && item.vimiumHints !== undefined) {
-                            item.vimiumActive = Qt.binding(() => root.vimiumActive)
-                            item.vimiumTyped = Qt.binding(() => root.vimiumTyped)
-                            item.vimiumHints = Qt.binding(() => root.vimiumHints.slice(2 + root.pages.length))
-                        }
+                        if (pageLoader.item) pageLoader.item.registry = root.registry
                     }
 
                     Connections {
