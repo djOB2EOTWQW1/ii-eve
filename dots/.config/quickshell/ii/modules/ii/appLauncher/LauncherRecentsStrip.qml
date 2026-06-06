@@ -2,12 +2,13 @@ import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.ii.appLauncher.vimium
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 
-// Horizontal Recent/Frequent strip shown above the app grid. Mouse-only
-// (deliberately excluded from vimium hints — see plan/spec YAGNI notes).
+// Horizontal Recent/Frequent strip shown above the app grid. Vimium hints
+// register into the launcher's main registry via root.launcher.mainRegistry.
 ColumnLayout {
     id: root
 
@@ -56,6 +57,19 @@ ColumnLayout {
                         ? Translation.tr("Frequent")
                         : Translation.tr("Recent")
                     font.pixelSize: Appearance.font.pixelSize.smaller
+                }
+            }
+
+            VimiumTarget {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.rightMargin: -5
+                anchors.topMargin: -5
+                registry: root.launcher?.mainRegistry ?? null
+                onActivated: {
+                    const al = Persistent.states.appLauncher
+                    if (!al) return
+                    al.recentsMode = (root.mode === "recent") ? "frequent" : "recent"
                 }
             }
         }
@@ -135,6 +149,16 @@ ColumnLayout {
                         CustomApps.activate(tile.modelData)
                         GlobalStates.appLauncherOpen = false
                     }
+                }
+            }
+
+            VimiumTarget {
+                x: 4
+                y: 4
+                registry: root.launcher?.mainRegistry ?? null
+                onActivated: {
+                    CustomApps.activate(tile.modelData)
+                    GlobalStates.appLauncherOpen = false
                 }
             }
         }
