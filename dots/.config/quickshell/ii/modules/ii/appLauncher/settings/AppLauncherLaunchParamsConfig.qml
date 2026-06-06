@@ -15,36 +15,9 @@ ContentPage {
     forceWidth: true
     interactive: false
 
-    property bool vimiumActive: false
-    property string vimiumTyped: ""
-    property var vimiumHints: []
+    property var registry: null
 
     readonly property var lp: Persistent.states.appLauncher?.launchParams ?? null
-
-    // Vimium dispatch contract — read by LauncherContent.qml.
-    //   0: toggle MANGOHUD=1
-    //   1: toggle gamemoderun
-    //   2: toggle "use MANGOHUD user config"
-    //   3: open the binary picker
-    //   4: toggle "also apply default parameters" (per-app)
-    readonly property int vimiumActionCount: 5
-    function dispatchVimiumAction(localIdx) {
-        if (!lp) return
-        if (localIdx === 0)      lp.defaultsMangohud = !lp.defaultsMangohud
-        else if (localIdx === 1) lp.defaultsGamemoderun = !lp.defaultsGamemoderun
-        else if (localIdx === 2) lp.defaultsUseMangohudConfig = !lp.defaultsUseMangohudConfig
-        else if (localIdx === 3) binaryPicker.toggleExpanded()
-        else if (localIdx === 4) {
-            if (perAppSection.selectedPath.length === 0) return
-            const cur = (perAppSection.selectedEntry?.useDefaults ?? true) !== false
-            perAppSection._writePerApp(
-                perAppSection.selectedPath,
-                perAppSection.selectedEntry?.params ?? "",
-                !cur,
-                perAppSection.selectedEntry?.matchClass ?? ""
-            )
-        }
-    }
 
     // Default Launch Parameters
     ContentSection {
@@ -70,14 +43,13 @@ ContentPage {
                     }
                 }
 
-                VimiumHintLabel {
+                VimiumTarget {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.rightMargin: -5
                     anchors.topMargin: -5
-                    hintText: page.vimiumHints[0] ?? ""
-                    typedText: page.vimiumTyped
-                    vimiumActive: page.vimiumActive
+                    registry: page.registry
+                    onActivated: if (page.lp) page.lp.defaultsMangohud = !page.lp.defaultsMangohud
                 }
             }
 
@@ -92,14 +64,13 @@ ContentPage {
                     }
                 }
 
-                VimiumHintLabel {
+                VimiumTarget {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.rightMargin: -5
                     anchors.topMargin: -5
-                    hintText: page.vimiumHints[1] ?? ""
-                    typedText: page.vimiumTyped
-                    vimiumActive: page.vimiumActive
+                    registry: page.registry
+                    onActivated: if (page.lp) page.lp.defaultsGamemoderun = !page.lp.defaultsGamemoderun
                 }
             }
 
@@ -121,14 +92,13 @@ ContentPage {
                     animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                 }
 
-                VimiumHintLabel {
+                VimiumTarget {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.rightMargin: -5
                     anchors.topMargin: -5
-                    hintText: page.vimiumHints[2] ?? ""
-                    typedText: page.vimiumTyped
-                    vimiumActive: page.vimiumActive
+                    registry: page.registry
+                    onActivated: if (page.lp) page.lp.defaultsUseMangohudConfig = !page.lp.defaultsUseMangohudConfig
                 }
             }
         }
@@ -301,14 +271,13 @@ ContentPage {
                     onClicked: picker.toggleExpanded()
                 }
 
-                VimiumHintLabel {
+                VimiumTarget {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.rightMargin: -5
                     anchors.topMargin: -5
-                    hintText: page.vimiumHints[3] ?? ""
-                    typedText: page.vimiumTyped
-                    vimiumActive: page.vimiumActive
+                    registry: page.registry
+                    onActivated: binaryPicker.toggleExpanded()
                 }
             }
 
@@ -493,14 +462,23 @@ ContentPage {
                 )
             }
 
-            VimiumHintLabel {
+            VimiumTarget {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.rightMargin: -5
                 anchors.topMargin: -5
-                hintText: page.vimiumHints[4] ?? ""
-                typedText: page.vimiumTyped
-                vimiumActive: page.vimiumActive
+                registry: page.registry
+                onActivated: {
+                    if (!page.lp) return
+                    if (perAppSection.selectedPath.length === 0) return
+                    const cur = (perAppSection.selectedEntry?.useDefaults ?? true) !== false
+                    perAppSection._writePerApp(
+                        perAppSection.selectedPath,
+                        perAppSection.selectedEntry?.params ?? "",
+                        !cur,
+                        perAppSection.selectedEntry?.matchClass ?? ""
+                    )
+                }
             }
         }
 
