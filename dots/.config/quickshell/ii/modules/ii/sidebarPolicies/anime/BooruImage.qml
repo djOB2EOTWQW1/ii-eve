@@ -22,7 +22,12 @@ Button {
     property string nsfwPath
     property string fileName: decodeURIComponent((imageData.file_url).substring((imageData.file_url).lastIndexOf('/') + 1))
     property string filePath: `${root.previewDownloadPath}/${root.fileName}`
-    property string fileExt: (imageData.file_ext ?? "").toLowerCase().replace(/^\./, "")
+    property string fileExt: {
+        const ext = (imageData.file_ext ?? "").toLowerCase().replace(/^\./, "")
+        if (ext) return ext
+        const url = (imageData.file_url ?? "").split("?")[0]
+        return url.substring(url.lastIndexOf(".") + 1).toLowerCase()
+    }
     property bool isPlayable: ["mp4", "webm", "m4v", "mov", "gif"].includes(root.fileExt)
     property bool nativePlaying: false
     property int maxTagStringLineLength: 50
