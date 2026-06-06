@@ -40,25 +40,24 @@ Item {
         Component.onCompleted: play()
     }
 
-    Rectangle {
+    Rectangle { // Background (sibling behind VideoOutput: a rounded clip breaks video rendering)
         anchors.fill: parent
         radius: root.cornerRadius
         color: "black"
-        clip: true
+    }
 
-        VideoOutput {
-            id: inlineVideo
-            anchors.fill: parent
-            fillMode: VideoOutput.PreserveAspectFit
-            visible: !root.fullscreen
-        }
+    VideoOutput {
+        id: inlineVideo
+        anchors.fill: parent
+        fillMode: VideoOutput.PreserveAspectFit
+        visible: !root.fullscreen
+    }
 
-        BusyIndicator {
-            anchors.centerIn: parent
-            running: mediaPlayer.mediaStatus === MediaPlayer.LoadingMedia
-                || mediaPlayer.mediaStatus === MediaPlayer.StalledMedia
-            visible: running && !root.fullscreen
-        }
+    BusyIndicator {
+        anchors.centerIn: parent
+        running: mediaPlayer.mediaStatus === MediaPlayer.LoadingMedia
+            || mediaPlayer.mediaStatus === MediaPlayer.StalledMedia
+        visible: running && !root.fullscreen
     }
 
     HoverHandler {
