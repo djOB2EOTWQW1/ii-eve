@@ -14,9 +14,6 @@ Item {
     property var folder: null
     property int iconSize: 64
     property var registry: null
-    property bool vimiumActive: false
-    property string vimiumTyped: ""
-    property var vimiumHints: []
     signal closed()
     signal renameAppRequested(int appIndex, string currentName)
     // Right-click on the dimmed backdrop or on empty space inside the folder
@@ -212,14 +209,17 @@ Item {
                         iconSize: 20
                     }
 
-                    VimiumHintLabel {
+                    VimiumTarget {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.rightMargin: -5
                         anchors.topMargin: -5
-                        hintText: root.vimiumHints[0] ?? ""
-                        typedText: root.vimiumTyped
-                        vimiumActive: root.vimiumActive
+                        registry: root.registry
+                        participates: !root.selectionModeActive
+                        onActivated: {
+                            GlobalStates.binarySelectorTargetFolderId = root.folder?.id ?? ""
+                            GlobalStates.binarySelectorOpen = true
+                        }
                     }
                 }
 
@@ -237,6 +237,16 @@ Item {
                         text: "delete_sweep"
                         iconSize: 20
                     }
+
+                    VimiumTarget {
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.rightMargin: -5
+                        anchors.topMargin: -5
+                        registry: root.registry
+                        participates: root.selectionModeActive && root.selectedAppIndices.length > 0
+                        onActivated: root.deleteSelectedApps()
+                    }
                 }
 
                 RippleButton {
@@ -252,14 +262,13 @@ Item {
                         iconSize: 20
                     }
 
-                    VimiumHintLabel {
+                    VimiumTarget {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.rightMargin: -5
                         anchors.topMargin: -5
-                        hintText: root.vimiumHints[1] ?? ""
-                        typedText: root.vimiumTyped
-                        vimiumActive: root.vimiumActive
+                        registry: root.registry
+                        onActivated: root.closed()
                     }
                 }
             }
@@ -363,12 +372,19 @@ Item {
                             }
                         }
 
-                        VimiumHintLabel {
+                        VimiumTarget {
                             x: 4
                             y: 4
-                            hintText: root.vimiumHints[folderAppDelegate.index + 2] ?? ""
-                            typedText: root.vimiumTyped
-                            vimiumActive: root.vimiumActive
+                            registry: root.registry
+                            onActivated: {
+                                if (root.selectionModeActive) {
+                                    root.toggleAppSelection(folderAppDelegate.modelData._originalIndex)
+                                    return
+                                }
+                                CustomApps.activate(folderAppDelegate.modelData)
+                                GlobalStates.appLauncherOpen = false
+                                root.closed()
+                            }
                         }
 
                     Rectangle {
