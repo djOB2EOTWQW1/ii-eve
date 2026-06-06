@@ -134,7 +134,10 @@ Button {
                 symbolName: "play_arrow"
                 visible: root.isPlayable
                 onClicked: {
-                    if ((Config.options?.sidebar?.booru?.player ?? "mpv") === "native") {
+                    // gelbooru needs a Referer header the native player can't send → force mpv
+                    const useNative = (Config.options?.sidebar?.booru?.player ?? "mpv") === "native"
+                        && !root.imageData.file_url.includes("gelbooru.com")
+                    if (useNative) {
                         root.nativePlaying = true
                         return
                     }
