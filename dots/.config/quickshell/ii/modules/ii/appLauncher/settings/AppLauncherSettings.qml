@@ -14,6 +14,8 @@ Item {
     property real contentPadding: 8
     property int currentPage: 0
 
+    property var registry: null
+
     property bool vimiumActive: false
     property string vimiumTyped: ""
     property var vimiumHints: []

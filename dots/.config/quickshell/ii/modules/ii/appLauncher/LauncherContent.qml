@@ -218,12 +218,20 @@ MouseArea {
         return -1
     }
 
-    property bool vimiumActive: false
-    property string vimiumTyped: ""
-    property bool settingsVimiumActive: false
-    property string settingsVimiumTyped: ""
-    property bool folderVimiumActive: false
-    property string folderVimiumTyped: ""
+    VimiumRegistry { id: mainReg; referenceItem: innerLayerRect }
+    VimiumRegistry { id: settingsReg; referenceItem: settingsOverlay.item }
+    VimiumRegistry { id: folderReg; referenceItem: folderViewer.item }
+
+    readonly property alias mainRegistry: mainReg
+    readonly property alias settingsRegistry: settingsReg
+    readonly property alias folderRegistry: folderReg
+
+    property alias vimiumActive: mainReg.active
+    property alias vimiumTyped: mainReg.typed
+    property alias settingsVimiumActive: settingsReg.active
+    property alias settingsVimiumTyped: settingsReg.typed
+    property alias folderVimiumActive: folderReg.active
+    property alias folderVimiumTyped: folderReg.typed
 
     property bool selectionModeActive: false
     property var selectedAppIndices: []
@@ -242,7 +250,11 @@ MouseArea {
     function closeContextMenu() { contextMenu.hide() }
     function closeFolderItemMenu() { folderViewer.item?.closeItemMenu() }
     function cancelRenameDialog() { renameDialog.cancel() }
-    function closeSettings() { settingsOverlay.shown = false }
+    function closeSettings() {
+        settingsOverlay.shown = false
+        settingsReg.active = false
+        settingsReg.typed = ""
+    }
 
     function toggleHelp() {
         const opening = !helpOverlay.shown
@@ -252,32 +264,6 @@ MouseArea {
             settingsVimiumActive = false; settingsVimiumTyped = ""
         }
         helpOverlay.shown = opening
-    }
-
-    readonly property var vimiumHints: LV.generateHints(2 + gridModel.length)
-
-    readonly property var _settingsRef: settingsOverlay.item?.settingsRef ?? null
-    readonly property int _settingsPagesCount: _settingsRef?.pages?.length ?? 0
-    readonly property int _settingsActiveActionCount: _settingsRef?.activeVimiumActionCount ?? 0
-
-    // Hint slot layout:
-    //   0                          → back (close settings)
-    //   1                          → toggle nav-rail expansion
-    //   2 .. 1 + pagesCount        → switch to page i (i = idx - 2)
-    //   2 + pagesCount .. end      → forwarded to active page's
-    //                                dispatchVimiumAction(localIdx)
-    readonly property var settingsVimiumHints: {
-        return LV.generateHints(2 + _settingsPagesCount + _settingsActiveActionCount)
-    }
-
-    readonly property var folderVimiumHints: {
-        // Touch CustomApps.entries/folders so the binding re-evaluates when the
-        // model changes even though we don't otherwise use those values here.
-        const _e = CustomApps.entries
-        const _f = CustomApps.folders
-        if (!folderViewer.active || !folderViewer.folder) return LV.generateHints(2)
-        const apps = CustomApps.appsInFolder(folderViewer.folder.id)
-        return LV.generateHints(2 + (apps ? apps.length : 0))
     }
 
     function toggleAppSelection(entryIndex) {
@@ -341,117 +327,6 @@ MouseArea {
         contextMenu.y = event.y
         contextMenu.openAt()
         event.accepted = true
-    }
-
-    onVimiumTypedChanged: {
-        if (!vimiumActive) return
-        const r = LV.matchTyped(vimiumHints, vimiumTyped)
-        if (r.action === "reset") { vimiumTyped = ""; return }
-        if (r.action !== "commit") return
-        vimiumActive = false
-        vimiumTyped = ""
-        _dispatchMainVimium(r.index)
-    }
-
-    function _dispatchMainVimium(idx) {
-        if (idx === 0) {
-            if (selectionModeActive) deleteSelectedApps()
-            else settingsOverlay.shown = true
-            return
-        }
-        if (idx === 1) {
-            // The "add" / settings buttons that own this hint are hidden in
-            // selection mode, so honoring the hint would trigger an action
-            // with no visible affordance.
-            if (selectionModeActive) return
-            GlobalStates.binarySelectorTargetFolderId = ""
-            GlobalStates.binarySelectorOpen = true
-            return
-        }
-        const gm = gridModel[idx - 2]
-        if (!gm) return
-        if (gm.appIndices) {
-            // Mouse semantics: clicking a folder while in selection mode is a
-            // no-op (folders aren't selectable). Mirror that for hints.
-            if (selectionModeActive) return
-            folderViewer.open(gm)
-            return
-        }
-        if (selectionModeActive) {
-            const eIdx = gm._originalIndex ?? -1
-            if (eIdx >= 0) toggleAppSelection(eIdx)
-        } else {
-            CustomApps.activate(gm)
-            GlobalStates.appLauncherOpen = false
-        }
-    }
-
-    onSettingsVimiumActiveChanged: {
-        if (settingsOverlay.item) settingsOverlay.item.vimiumActive = settingsVimiumActive
-    }
-
-    onSettingsVimiumTypedChanged: {
-        if (settingsOverlay.item) settingsOverlay.item.vimiumTyped = settingsVimiumTyped
-        if (!settingsVimiumActive) return
-        const r = LV.matchTyped(settingsVimiumHints, settingsVimiumTyped)
-        if (r.action === "reset") { settingsVimiumTyped = ""; return }
-        if (r.action !== "commit") return
-        settingsVimiumActive = false
-        settingsVimiumTyped = ""
-        _dispatchSettingsVimium(r.index)
-    }
-
-    function _dispatchSettingsVimium(idx) {
-        const ref = _settingsRef
-        if (idx === 0) {
-            settingsOverlay.shown = false
-            return
-        }
-        if (idx === 1) {
-            ref?.toggleNavExpand()
-            return
-        }
-        const pagesCount = _settingsPagesCount
-        const pageIdx = idx - 2
-        if (pageIdx < pagesCount) {
-            if (ref) ref.currentPage = pageIdx
-            return
-        }
-        const localIdx = pageIdx - pagesCount
-        ref?.dispatchActiveVimium(localIdx)
-    }
-
-    onFolderVimiumTypedChanged: {
-        if (!folderVimiumActive) return
-        const r = LV.matchTyped(folderVimiumHints, folderVimiumTyped)
-        if (r.action === "reset") { folderVimiumTyped = ""; return }
-        if (r.action !== "commit") return
-        folderVimiumActive = false
-        folderVimiumTyped = ""
-        _dispatchFolderVimium(r.index)
-    }
-
-    function _dispatchFolderVimium(idx) {
-        if (idx === 0) {
-            GlobalStates.binarySelectorTargetFolderId = folderViewer.folder?.id ?? ""
-            GlobalStates.binarySelectorOpen = true
-            return
-        }
-        if (idx === 1) {
-            folderViewer.close()
-            return
-        }
-        const apps = CustomApps.appsInFolder(folderViewer.folder?.id ?? "")
-        const appIndex = idx - 2
-        if (!apps || appIndex >= apps.length) return
-        if (root.isFolderSelectionModeActive) {
-            const origIdx = apps[appIndex]._originalIndex ?? -1
-            if (origIdx >= 0) folderViewer.item?.toggleAppSelection(origIdx)
-        } else {
-            CustomApps.activate(apps[appIndex])
-            GlobalStates.appLauncherOpen = false
-            folderViewer.close()
-        }
     }
 
     Rectangle {
@@ -532,14 +407,14 @@ MouseArea {
                         iconSize: 20
                     }
 
-                    VimiumHintLabel {
+                    VimiumTarget {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.rightMargin: -5
                         anchors.topMargin: -5
-                        hintText: root.vimiumHints[0] ?? ""
-                        typedText: root.vimiumTyped
-                        vimiumActive: root.vimiumActive
+                        registry: root.mainRegistry
+                        participates: root.selectionModeActive && root.selectedAppIndices.length > 0
+                        onActivated: root.deleteSelectedApps()
                     }
                 }
 
@@ -560,14 +435,17 @@ MouseArea {
                         iconSize: 20
                     }
 
-                    VimiumHintLabel {
+                    VimiumTarget {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.rightMargin: -5
                         anchors.topMargin: -5
-                        hintText: root.vimiumHints[1] ?? ""
-                        typedText: root.vimiumTyped
-                        vimiumActive: root.vimiumActive
+                        registry: root.mainRegistry
+                        participates: !settingsOverlay.shown && !root.selectionModeActive
+                        onActivated: {
+                            GlobalStates.binarySelectorTargetFolderId = ""
+                            GlobalStates.binarySelectorOpen = true
+                        }
                     }
                 }
 
@@ -585,14 +463,14 @@ MouseArea {
                         iconSize: 20
                     }
 
-                    VimiumHintLabel {
+                    VimiumTarget {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.rightMargin: -5
                         anchors.topMargin: -5
-                        hintText: root.vimiumHints[0] ?? ""
-                        typedText: root.vimiumTyped
-                        vimiumActive: root.vimiumActive
+                        registry: root.mainRegistry
+                        participates: !settingsOverlay.shown && !root.selectionModeActive
+                        onActivated: settingsOverlay.shown = true
                     }
                 }
             }
@@ -787,8 +665,6 @@ MouseArea {
                 radius: Appearance.rounding.normal
 
                 property var settingsRef: null
-                property bool vimiumActive: root.settingsVimiumActive
-                property string vimiumTyped: root.settingsVimiumTyped
 
                 Component.onCompleted: settingsRect.settingsRef = launcherSettings
 
@@ -800,9 +676,7 @@ MouseArea {
                 AppLauncherSettings {
                     id: launcherSettings
                     anchors.fill: parent
-                    vimiumActive: settingsRect.vimiumActive
-                    vimiumTyped: settingsRect.vimiumTyped
-                    vimiumHints: root.settingsVimiumHints
+                    registry: root.settingsRegistry
                     onClosed: settingsOverlay.shown = false
                 }
             }
@@ -890,9 +764,7 @@ MouseArea {
             sourceComponent: AppFolderViewer {
                 folder: folderViewer.folder
                 iconSize: root.iconSize
-                vimiumActive: root.folderVimiumActive
-                vimiumTyped: root.folderVimiumTyped
-                vimiumHints: root.folderVimiumHints
+                registry: root.folderRegistry
                 onClosed: folderViewer.close()
                 onRenameAppRequested: (appIndex, currentName) => renameDialog.openForApp(appIndex, currentName)
                 // The viewer swallows backdrop / empty-panel right-clicks so they

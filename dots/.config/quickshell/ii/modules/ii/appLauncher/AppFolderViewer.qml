@@ -13,6 +13,7 @@ Item {
     id: root
     property var folder: null
     property int iconSize: 64
+    property var registry: null
     property bool vimiumActive: false
     property string vimiumTyped: ""
     property var vimiumHints: []
