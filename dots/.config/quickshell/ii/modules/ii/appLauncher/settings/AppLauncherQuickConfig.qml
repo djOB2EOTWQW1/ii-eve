@@ -16,26 +16,7 @@ ContentPage {
     forceWidth: true
     interactive: false
 
-    property bool vimiumActive: false
-    property string vimiumTyped: ""
-    property var vimiumHints: []
-
-    // Vimium dispatch contract — read by LauncherContent.qml.
-    //   0: windowSize = "current" (Fullscreen)
-    //   1: windowSize = "settings" (Windowed)
-    //   2..: CustomApps.removeFolderAt(localIdx - 2)
-    readonly property int vimiumActionCount: 2 + (CustomApps.folders ? CustomApps.folders.length : 0)
-    function dispatchVimiumAction(localIdx) {
-        if (localIdx === 0) {
-            if (Persistent.states.appLauncher) Persistent.states.appLauncher.windowSize = "current"
-            return
-        }
-        if (localIdx === 1) {
-            if (Persistent.states.appLauncher) Persistent.states.appLauncher.windowSize = "settings"
-            return
-        }
-        CustomApps.removeFolderAt(localIdx - 2)
-    }
+    property var registry: null
 
     ContentSection {
         icon: "straighten"
@@ -157,9 +138,7 @@ ContentPage {
                         if (Persistent.states.appLauncher)
                             Persistent.states.appLauncher.windowSize = value
                     }
-                    vimiumActive: page.vimiumActive
-                    vimiumTyped: page.vimiumTyped
-                    vimiumHints: [page.vimiumHints[0] ?? "", page.vimiumHints[1] ?? ""]
+                    registry: page.registry
                 }
 
                 StyledText {
@@ -291,14 +270,13 @@ ContentPage {
                                 animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                             }
 
-                            VimiumHintLabel {
+                            VimiumTarget {
                                 anchors.right: parent.right
                                 anchors.top: parent.top
                                 anchors.rightMargin: -5
                                 anchors.topMargin: -5
-                                hintText: (folderRow.index + 2) < page.vimiumHints.length ? page.vimiumHints[folderRow.index + 2] : ""
-                                typedText: page.vimiumTyped
-                                vimiumActive: page.vimiumActive
+                                registry: page.registry
+                                onActivated: CustomApps.removeFolderAt(folderRow.index)
                             }
                         }
                     }
