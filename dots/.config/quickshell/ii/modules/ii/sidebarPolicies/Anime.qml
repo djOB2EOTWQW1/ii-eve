@@ -164,6 +164,33 @@ Item {
                 }
                 Booru.resetApiKeys(provider);
             }
+        },
+        {
+            name: "player",
+            description: Translation.tr("Set video player. Usage: %1player mpv|native").arg(root.commandPrefix),
+            execute: args => {
+                if (args.length === 0 || args[0] === "") {
+                    Booru.addSystemMessage(
+                        Translation.tr("Current player: %1").arg(Config.options.sidebar.booru.player)
+                    );
+                    return;
+                }
+
+                const value = args[0].toLowerCase();
+
+                if (value !== "mpv" && value !== "native") {
+                    Booru.addSystemMessage(
+                        Translation.tr("Invalid value. Use %1player mpv|native").arg(root.commandPrefix)
+                    );
+                    return;
+                }
+
+                Config.options.sidebar.booru.player = value;
+
+                Booru.addSystemMessage(
+                    Translation.tr("Player set to %1").arg(value)
+                );
+            }
         }
     ]
 
