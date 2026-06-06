@@ -22,6 +22,8 @@ Button {
     property string nsfwPath
     property string fileName: decodeURIComponent((imageData.file_url).substring((imageData.file_url).lastIndexOf('/') + 1))
     property string filePath: `${root.previewDownloadPath}/${root.fileName}`
+    property string fileExt: (imageData.file_ext ?? "").toLowerCase().replace(/^\./, "")
+    property bool isPlayable: ["mp4", "webm", "m4v", "mov", "gif"].includes(root.fileExt)
     property int maxTagStringLineLength: 50
     property real imageRadius: Appearance.rounding.small
     property var tagInputField
@@ -150,6 +152,20 @@ Button {
                     Hyprland.dispatch("hl.config({cursor = {no_warps = true}})")
                     Qt.openUrlExternally(url)
                     Hyprland.dispatch("hl.config({cursor = {no_warps = false}})")
+                }
+            }
+
+            ImgActionButton { // Play in mpv
+                symbolName: "play_arrow"
+                visible: root.isPlayable
+                onClicked: {
+                    const userAgent = Config.options?.networking?.userAgent ?? ""
+                    const args = ["mpv", "--force-window=immediate", "--cache=yes", "--loop-file=inf"]
+                    if (userAgent) args.push(`--user-agent=${userAgent}`)
+                    if (root.imageData.file_url.includes("gelbooru.com"))
+                        args.push(`--referrer=https://gelbooru.com/index.php?page=post&s=view&id=${root.imageData.id}`)
+                    args.push(root.imageData.file_url)
+                    Quickshell.execDetached(args)
                 }
             }
 
