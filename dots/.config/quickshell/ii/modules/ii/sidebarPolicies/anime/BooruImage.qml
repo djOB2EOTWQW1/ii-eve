@@ -41,6 +41,9 @@ Button {
         running: root.manualDownload
         filePath: root.filePath
         sourceUrl: root.imageData.preview_url ?? root.imageData.sample_url
+        referer: root.imageData.file_url?.includes("gelbooru.com")
+        ? `https://gelbooru.com/index.php?page=post&s=view&id=${root.imageData.id}`
+        : ""
         onDone: (path, width, height) => {
             imageObject.source = ""
             imageObject.source = path
@@ -72,7 +75,7 @@ Button {
             width: root.rowHeight * modelData.aspect_ratio
             height: root.rowHeight
             fillMode: Image.PreserveAspectFit
-            source: modelData.preview_url
+            source: root.manualDownload ? "" : modelData.preview_url
 
             layer.enabled: true
             layer.effect: OpacityMask {
