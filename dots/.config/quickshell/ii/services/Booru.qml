@@ -301,6 +301,15 @@ Singleton {
         responses = [...responses, newResponse]
 
         if (responses.length > maxResponses) {
+            const toRemove = responses.slice(0, responses.length - maxResponses)
+            toRemove.forEach(response => {
+                response.images.forEach(image => {
+                    const fileName = decodeURIComponent(
+                    image.file_url.substring(image.file_url.lastIndexOf('/') + 1)
+                    )
+                    Quickshell.execDetached(["rm", "-f", `${Directories.booruPreviews}/${fileName}`])
+                })
+            })
             responses = responses.slice(responses.length - maxResponses)
         }
 
