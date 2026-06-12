@@ -15,7 +15,7 @@ Singleton {
     property bool weak: confOpt.value == weakShaderPath
 
     function enable() {
-        HyprlandConfig.setMany({
+        HyprlandSettings.setKeys({
             "decoration:screen_shader": root.shaderPath,
             "debug:damage_tracking": 1, // Turn off dmg tracking to prevent weird flashes. 1 = monitor only
         });
@@ -29,7 +29,7 @@ Singleton {
     }
 
     function disable() {
-        HyprlandConfig.resetMany([
+        HyprlandSettings.resetKeys([
             "decoration:screen_shader",
             "debug:damage_tracking"
         ]);
