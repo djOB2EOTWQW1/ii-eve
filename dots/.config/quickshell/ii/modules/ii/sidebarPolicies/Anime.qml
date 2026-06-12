@@ -166,6 +166,33 @@ Item {
             }
         },
         {
+            name: "quality",
+            description: Translation.tr("Set preview quality. Usage: %1quality preview|sample|full").arg(root.commandPrefix),
+            execute: args => {
+                if (args.length === 0 || args[0] === "") {
+                    Booru.addSystemMessage(
+                        Translation.tr("Current preview quality: %1").arg(Config.options.sidebar.booru.previewQuality)
+                    );
+                    return;
+                }
+
+                const value = args[0].toLowerCase();
+
+                if (!["preview", "sample", "full"].includes(value)) {
+                    Booru.addSystemMessage(
+                        Translation.tr("Invalid value. Use %1quality preview|sample|full").arg(root.commandPrefix)
+                    );
+                    return;
+                }
+
+                Config.options.sidebar.booru.previewQuality = value;
+
+                Booru.addSystemMessage(
+                    Translation.tr("Preview quality set to %1").arg(value)
+                );
+            }
+        },
+        {
             name: "player",
             description: Translation.tr("Set video player. Usage: %1player mpv|native").arg(root.commandPrefix),
             execute: args => {

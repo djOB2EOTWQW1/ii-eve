@@ -304,10 +304,14 @@ Singleton {
             const toRemove = responses.slice(0, responses.length - maxResponses)
             toRemove.forEach(response => {
                 response.images.forEach(image => {
-                    const fileName = decodeURIComponent(
-                    image.file_url.substring(image.file_url.lastIndexOf('/') + 1)
-                    )
-                    Quickshell.execDetached(["rm", "-f", `${Directories.booruPreviews}/${fileName}`])
+                    [image.preview_url, image.sample_url, image.file_url].forEach(url => {
+                        if (!url) return
+                        const cleanUrl = url.split('?')[0]
+                        const fileName = decodeURIComponent(
+                        cleanUrl.substring(cleanUrl.lastIndexOf('/') + 1)
+                        )
+                        Quickshell.execDetached(["rm", "-f", `${Directories.booruPreviews}/${fileName}`])
+                    })
                 })
             })
             responses = responses.slice(responses.length - maxResponses)

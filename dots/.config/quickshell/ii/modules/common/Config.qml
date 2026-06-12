@@ -774,6 +774,7 @@ Singleton {
                     property string defaultProvider: "yandere"
                     property int limit: 20
                     property string player: "mpv" // Options: mpv, native
+                    property string previewQuality: "preview" // Options: preview, sample, full
                     property real rowTooShortThreshold: 250
                     property list<string> popularTags: ["scenery", "1girl", "landscape", "cat", "wallpaper"]
                     property JsonObject zerochan: JsonObject {

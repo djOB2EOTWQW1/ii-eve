@@ -21,7 +21,6 @@ Button {
     property string downloadPath
     property string nsfwPath
     property string fileName: decodeURIComponent((imageData.file_url).substring((imageData.file_url).lastIndexOf('/') + 1))
-    property string filePath: `${root.previewDownloadPath}/${root.fileName}`
     property string fileExt: {
         const ext = (imageData.file_ext ?? "").toLowerCase().replace(/^\./, "")
         if (ext) return ext
@@ -29,6 +28,23 @@ Button {
         return url.substring(url.lastIndexOf(".") + 1).toLowerCase()
     }
     property bool isPlayable: ["mp4", "webm", "m4v", "mov", "gif"].includes(root.fileExt)
+    // Real videos can't render as a static Image, so always thumbnail them regardless of quality
+    readonly property bool isStaticVideo: ["mp4", "webm", "m4v", "mov"].includes(root.fileExt)
+    readonly property string previewQuality: Config.options?.sidebar?.booru?.previewQuality ?? "preview"
+    readonly property string resolvedPreviewUrl: {
+        if (root.isStaticVideo)
+            return imageData.preview_url ?? imageData.sample_url ?? imageData.file_url
+        if (root.previewQuality === "full")
+            return imageData.file_url ?? imageData.sample_url ?? imageData.preview_url
+        if (root.previewQuality === "sample")
+            return imageData.sample_url ?? imageData.file_url ?? imageData.preview_url
+        return imageData.preview_url ?? imageData.sample_url ?? imageData.file_url
+    }
+    property string previewCacheName: {
+        const url = (root.resolvedPreviewUrl ?? "").split("?")[0]
+        return decodeURIComponent(url.substring(url.lastIndexOf('/') + 1))
+    }
+    property string filePath: `${root.previewDownloadPath}/${root.previewCacheName}`
     property bool nativePlaying: false
     property int maxTagStringLineLength: 50
     property real imageRadius: Appearance.rounding.small
@@ -36,11 +52,20 @@ Button {
 
     property bool showActions: false
     property bool showTags: false
+    property bool ready: false
+    Component.onCompleted: root.ready = true
+    onResolvedPreviewUrlChanged: {
+        if (!root.ready || !root.manualDownload) return
+        // Process won't re-run on a command change; toggle running to refetch at the new quality
+        imageDownloader.running = false
+        Qt.callLater(() => imageDownloader.running = true)
+    }
+
     ImageDownloaderProcess {
         id: imageDownloader
         running: root.manualDownload
         filePath: root.filePath
-        sourceUrl: root.imageData.preview_url ?? root.imageData.sample_url
+        sourceUrl: root.resolvedPreviewUrl
         referer: root.imageData.file_url?.includes("gelbooru.com")
         ? `https://gelbooru.com/index.php?page=post&s=view&id=${root.imageData.id}`
         : ""
@@ -75,7 +100,7 @@ Button {
             width: root.rowHeight * modelData.aspect_ratio
             height: root.rowHeight
             fillMode: Image.PreserveAspectFit
-            source: root.manualDownload ? "" : modelData.preview_url
+            source: root.manualDownload ? "" : root.resolvedPreviewUrl
 
             layer.enabled: true
             layer.effect: OpacityMask {
