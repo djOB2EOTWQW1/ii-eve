@@ -12,9 +12,8 @@ Item {
     required property var scopeRoot
     property int sidebarPadding: 10
     anchors.fill: parent
-    property bool aiChatEnabled: Config.options.policies.ai !== 0
     property bool animeEnabled: Config.options.policies.weeb !== 0
-    property bool animeCloset: Config.options.policies.weeb === 2  
+    property bool animeCloset: Config.options.policies.weeb === 2
 
     property bool _sidebarExtended: scopeRoot.extend
     property int _maxTextTabs: _sidebarExtended ? 4 : 3
@@ -30,8 +29,7 @@ Item {
         function onExtensionToggled() { root.extensionPages = ExtensionManager.getContributionPoint("sidebarLeftPages") }
     }
 
-    property var tabButtonList: [  
-        ...(root.aiChatEnabled ? [{"icon": "neurology", "name": Translation.tr("Intelligence")}] : []),
+    property var tabButtonList: [
         ...((root.animeEnabled && !root.animeCloset) ? [{"icon": "bookmark_heart", "name": Translation.tr("Anime")}] : []),
         ...root.extensionPages.map(p => ({icon: p.icon, name: p.title}))
     ]
@@ -127,18 +125,13 @@ Item {
                 }
 
                 contentChildren: [
-                    ...(root.aiChatEnabled ? [aiChat.createObject()] : []),
-                    ...((root.tabButtonList.length === 0 || (!root.aiChatEnabled && root.animeCloset)) ? [placeholder.createObject()] : []),
+                    ...((root.tabButtonList.length === 0 || root.animeCloset) ? [placeholder.createObject()] : []),
                     ...(root.animeEnabled ? [anime.createObject()] : []),
                     ...root.extensionPages.map(p => root.createExtensionPage(p)).filter(item => item)
                 ]
             }
         }
 
-        Component {
-            id: aiChat
-            AiChat {}
-        }
         Component {
             id: anime
             Anime {}
