@@ -2,6 +2,7 @@ import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.common.widgets.animations
 import qs.modules.common.functions
 import qs.modules.ii.sidebarPolicies
 import QtQuick
@@ -12,6 +13,36 @@ import Quickshell
 Item {
     id: root
     property var tagInputField
+
+    // Opening animation (mirrors PlaceholderOpeningAnimation, adapted to the hero shape)
+    property bool triggerAnimationOn: false
+    property bool rotateToRight: true
+
+    onTriggerAnimationOnChanged: {
+        if (!triggerAnimationOn) return;
+        heroRotationAnim.from = rotateToRight ? -50 : 50;
+        openingAnimation.restart();
+    }
+
+    SequentialAnimation {
+        id: openingAnimation
+        ParallelAnimation {
+            PropertyAnimation {
+                id: heroRotationAnim
+                target: heroShape
+                property: "rotation"
+                to: 0
+                duration: 250
+                easing.type: Easing.OutCubic
+            }
+            BounceAnimation {
+                target: heroShape
+                propertyName: "scale"
+                peak: 1.1
+                totalDuration: 400
+            }
+        }
+    }
 
     readonly property var recent: Persistent.states.booru.searchHistory ?? []
 

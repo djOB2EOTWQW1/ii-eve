@@ -358,6 +358,8 @@ Item {
                 visible: active
                 sourceComponent: AnimeComponents.BooruWelcome {
                     tagInputField: root.inputField
+                    triggerAnimationOn: GlobalStates.policiesPanelOpen
+                    rotateToRight: GlobalStates.policiesOnLeft
                 }
             }
 

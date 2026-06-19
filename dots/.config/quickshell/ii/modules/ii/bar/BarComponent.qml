@@ -53,10 +53,6 @@ Item {
             "weather": [weatherComp, weatherComp, weatherCompExpressive, weatherCompExpressive],
             "policies_panel_button": [policiesPanelButton, policiesPanelButton, policiesPanelButtonExpressive, policiesPanelButtonExpressive],
             "dashboard_panel_button": [dashboardPanelButton, dashboardPanelButtonVert, dashboardPanelButtonExpressive, dashboardPanelButtonExpressiveVert],
-            "bluetooth_devices": [bluetoothComp, bluetoothCompVert, bluetoothCompExpressive, bluetoothCompExpressive],
-            "keyboard_layout": [keyboardComp, keyboardCompVert, keyboardCompExpressive, keyboardCompExpressive],
-            "sports": [sportsComp, sportsComp, sportsCompExpressive, sportsCompExpressive],
-            "power": [powerComp, powerComp, powerCompExpressive, powerCompExpressive],
             "network_speed": [networkSpeedComp, networkSpeedComp]
         })
 
@@ -83,17 +79,9 @@ Item {
             return true;
         if (modelData.id === "policies_panel_button" && Config.options.bar.styles.policies === "expressive")
             return true;
-        if (modelData.id === "power" && Config.options.bar.styles.power === "expressive")
-            return true;
         if (modelData.id === "battery" && Config.options.bar.styles.battery === "expressive")
             return true;
         if (modelData.id === "system_tray" && Config.options.bar.styles.systray === "expressive")
-            return true;
-        if (modelData.id === "bluetooth_devices" && Config.options.bar.styles.bluetooth === "expressive")
-            return true;
-        if (modelData.id === "keyboard_layout" && Config.options.bar.styles.keyboard === "expressive")
-            return true;
-        if (modelData.id === "sports" && Config.options.bar.styles.sports === "expressive")
             return true;
         return false;
     }
@@ -182,9 +170,10 @@ Item {
             id: itemLoader
             active: true
             sourceComponent: {
+                BarComponentRegistry._extensionCompVersion; // re-evaluate when extensions change
                 let comps = compMap[modelData.id];
                 if (!comps)
-                    return null;
+                    return BarComponentRegistry.getComponentForId(modelData.id, vertical);
                 let isVert = vertical ? 1 : 0;
                 let isExpressive = rootItem.isExpressive;
                 let isMinimal = rootItem.isMinimal;
@@ -200,6 +189,19 @@ Item {
             onLoaded: {
                 if (item && item.hasOwnProperty("onActivatedColor")) {
                     item.onActivatedColor = Qt.binding(() => rootItem.colOnBackgroundHighlight);
+                }
+                let extId = BarComponentRegistry.getExtensionIdForComponent(modelData.id);
+                if (extId && item) {
+                    if ("extensionId" in item) {
+                        item.extensionId = extId;
+                    } else {
+                        Object.defineProperty(item, "extensionId", {
+                            value: extId,
+                            writable: true,
+                            configurable: true,
+                            enumerable: true
+                        });
+                    }
                 }
             }
         }
@@ -323,31 +325,6 @@ Item {
     }
 
     Component {
-        id: bluetoothComp
-        BluetoothDevicesWidget {
-            vertical: rootItem.vertical
-        }
-    }
-    Component {
-        id: bluetoothCompVert
-        Vertical.VerticalBluetoothDevicesWidget {}
-    }
-    Component {
-        id: keyboardComp
-        KeyboardLayoutWidget {
-            vertical: rootItem.vertical
-        }
-    }
-    Component {
-        id: keyboardCompVert
-        Vertical.VerticalKeyboardLayoutWidget {}
-    }
-    Component {
-        id: sportsComp
-        Sports {}
-    }
-
-    Component {
         id: weatherCompExpressive
         ExpressiveWeatherBar {
             vertical: rootItem.vertical
@@ -401,14 +378,6 @@ Item {
         }
     }
     Component {
-        id: powerComp
-        PowerButton {}
-    }
-    Component {
-        id: powerCompExpressive
-        ExpressivePowerButton {}
-    }
-    Component {
         id: batteryCompExpressive
         ExpressiveBattery {
             vertical: rootItem.vertical
@@ -417,24 +386,6 @@ Item {
     Component {
         id: systemTrayCompExpressive
         ExpressiveSystemTray {
-            vertical: rootItem.vertical
-        }
-    }
-    Component {
-        id: bluetoothCompExpressive
-        ExpressiveBluetoothDevices {
-            vertical: rootItem.vertical
-        }
-    }
-    Component {
-        id: keyboardCompExpressive
-        ExpressiveKeyboardLayout {
-            vertical: rootItem.vertical
-        }
-    }
-    Component {
-        id: sportsCompExpressive
-        ExpressiveSports {
             vertical: rootItem.vertical
         }
     }

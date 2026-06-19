@@ -88,6 +88,10 @@ Singleton {
                 property int translator: 0 // 0: No | 1: Yes
             }
 
+            property JsonObject extensions: JsonObject {
+                property bool enable: true
+            }
+
             property JsonObject localsend: JsonObject {
                 property bool autoStart: true
                 property string downloadPath: Directories.localSendDownloadPath.replace("file://", "")
@@ -544,7 +548,7 @@ Singleton {
                 property real hoverRegionHeight: 2
                 property bool pinnedOnStartup: false
                 property bool enablePreview: true
-                property bool hoverToReveal: true
+                property bool revealOnEmptyWorkspace: true
                 property bool enableMediaWidget: false
                 property string position: "bottom"
                 property list<string> pinnedApps: ["org.kde.dolphin", "kitty",]
@@ -912,16 +916,6 @@ Singleton {
                     property list<string> networkNameKeywords: ["airport", "cafe", "college", "company", "eduroam", "free", "guest", "public", "school", "university"]
                     property list<string> fileKeywords: ["anime", "booru", "ecchi", "hentai", "yande.re", "konachan", "breast", "nipples", "pussy", "nsfw", "spoiler", "girl"]
                     property list<string> linkKeywords: ["hentai", "porn", "sukebei", "hitomi.la", "rule34", "gelbooru", "fanbox", "dlsite"]
-                }
-            }
-
-            property JsonObject wallpapers: JsonObject {
-                property string service: "wallhaven" // "unsplash" or "wallhaven"
-                property string sort: "favourites"
-                property bool showAnimeResults: false // only for wallhaven service
-                property JsonObject paths: JsonObject {
-                    property string download: FileUtils.trimFileProtocol(`${Directories.home}/Pictures/Wallpapers`)
-                    property string nsfw: FileUtils.trimFileProtocol(`${Directories.home}/Pictures/Wallpapers/NSFW`)
                 }
             }
 
