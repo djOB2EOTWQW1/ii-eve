@@ -10,21 +10,8 @@ import Quickshell.Io
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
-import "commands"
-
 Scope { // Scope
     id: root
-    Component { id: timetableComponent; CheatsheetTimetable {} }
-    Component { id: keybindsComponent;  CheatsheetKeybinds {} }
-    Component { id: elementsComponent;  CheatsheetPeriodicTable {} }
-    Component { id: commandsComponent;  CheatsheetCommands {} }
-
-    readonly property var allTabs: [
-        { key: "timetable", icon: "calendar_month", name: Translation.tr("Timetable"),  component: timetableComponent },
-        { key: "keybinds",  icon: "keyboard",       name: Translation.tr("Keybinds"),   component: keybindsComponent },
-        { key: "elements",  icon: "experiment",     name: Translation.tr("Elements"),   component: elementsComponent },
-        { key: "commands",  icon: "terminal",       name: Translation.tr("Commands"),   component: commandsComponent },
-    ]
 
     // cheatsheetPages contribution point: external extension tabs
     property var extensionPages: ExtensionManager.ready ? ExtensionManager.getContributionPoint("cheatsheetPages") : []
@@ -43,24 +30,7 @@ Scope { // Scope
         extensionId: p.extensionId
     }))
 
-    readonly property var visibleTabs: {
-        const v = Config.options.cheatsheet.visibleTabs;
-        let builtin;
-        if (!v) {
-            builtin = root.allTabs;
-        } else {
-            // Explicit reads so QML binding analyzer tracks each bool
-            const flags = {
-                timetable: v.timetable,
-                keybinds: v.keybinds,
-                elements: v.elements,
-                commands: v.commands,
-            };
-            const filtered = root.allTabs.filter(t => flags[t.key] === true);
-            builtin = filtered.length > 0 ? filtered : [root.allTabs.find(t => t.key === "keybinds")];
-        }
-        return builtin.concat(root.extensionTabs);
-    }
+    readonly property var visibleTabs: root.extensionTabs
 
     readonly property var tabButtonList: root.visibleTabs.map(t => ({ icon: t.icon, name: t.name }))
 

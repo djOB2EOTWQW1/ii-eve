@@ -13,14 +13,6 @@ ContentPage {
     property bool register: parent.register ?? false
     forceWidth: true
 
-    readonly property int _cheatsheetEnabledTabs: {
-        const v = Config.options.cheatsheet.visibleTabs;
-        return (v.timetable ? 1 : 0)
-             + (v.keybinds  ? 1 : 0)
-             + (v.elements  ? 1 : 0)
-             + (v.commands  ? 1 : 0);
-    }
-
     ContentSection {
         icon: "keyboard"
         title: Translation.tr("Cheat sheet")
@@ -122,59 +114,6 @@ ContentPage {
             stepSize: 1
             onValueChanged: {
                 Config.options.cheatsheet.fontSize.comment = value;
-            }
-        }
-
-        ContentSubsection {
-            title: Translation.tr("Visible tabs")
-            tooltip: Translation.tr("At least one tab must stay enabled")
-
-            ConfigRow {
-                uniform: true
-
-                ConfigSwitch {
-                    buttonIcon: "calendar_month"
-                    text: Translation.tr("Timetable")
-                    checked: Config.options.cheatsheet.visibleTabs.timetable
-                    enabled: !(checked && page._cheatsheetEnabledTabs === 1)
-                    onCheckedChanged: {
-                        Config.options.cheatsheet.visibleTabs.timetable = checked;
-                    }
-                }
-
-                ConfigSwitch {
-                    buttonIcon: "keyboard"
-                    text: Translation.tr("Keybinds")
-                    checked: Config.options.cheatsheet.visibleTabs.keybinds
-                    enabled: !(checked && page._cheatsheetEnabledTabs === 1)
-                    onCheckedChanged: {
-                        Config.options.cheatsheet.visibleTabs.keybinds = checked;
-                    }
-                }
-            }
-
-            ConfigRow {
-                uniform: true
-
-                ConfigSwitch {
-                    buttonIcon: "experiment"
-                    text: Translation.tr("Elements")
-                    checked: Config.options.cheatsheet.visibleTabs.elements
-                    enabled: !(checked && page._cheatsheetEnabledTabs === 1)
-                    onCheckedChanged: {
-                        Config.options.cheatsheet.visibleTabs.elements = checked;
-                    }
-                }
-
-                ConfigSwitch {
-                    buttonIcon: "terminal"
-                    text: Translation.tr("Commands")
-                    checked: Config.options.cheatsheet.visibleTabs.commands
-                    enabled: !(checked && page._cheatsheetEnabledTabs === 1)
-                    onCheckedChanged: {
-                        Config.options.cheatsheet.visibleTabs.commands = checked;
-                    }
-                }
             }
         }
     }
