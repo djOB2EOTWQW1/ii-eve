@@ -7,10 +7,7 @@ import qs.modules.common.widgets
 Item {
     id: root
     property bool showPing: false
-    property bool aiChatEnabled: Config.options.policies.ai !== 0
-    property bool translatorEnabled: Config.options.sidebar.translator.enable
-    property bool animeEnabled: Config.options.policies.weeb !== 0
-    visible: aiChatEnabled || translatorEnabled || animeEnabled
+    visible: (ExtensionManager.ready ? ExtensionManager.getContributionPoint("sidebarLeftPages").length : 0) > 0
 
     implicitWidth: loader.implicitWidth
     implicitHeight: loader.implicitHeight
