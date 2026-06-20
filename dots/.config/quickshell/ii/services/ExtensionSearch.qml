@@ -39,16 +39,32 @@ Singleton {
 
     // ── GitHub search ──
 
+    // GitHub topics searched for browsable extensions (vynx + ii-eve), merged and deduped.
+    readonly property var searchTopics: ["ii-vynx-extension", "ii-eve-extension"]
+
     function refreshAvailableExtensions() {
         if (!Config.options.extensions.enable) return
         if (root.loading) return
         root.loading = true
         ExtensionManager.error = ""
         ExtensionManager.loading = true
-        searchProc.exec(["curl", "-s",
-            "-H", "Accept: application/vnd.github+json",
-            "https://api.github.com/search/repositories?q=ii-vynx-extension+in:topic&per_page=50"
-        ])
+        const py = `import json,urllib.request
+topics=${JSON.stringify(root.searchTopics)}
+def f(t):
+    try:
+        r=urllib.request.Request("https://api.github.com/search/repositories?q="+t+"+in:topic&per_page=50",headers={"Accept":"application/vnd.github+json"})
+        return json.load(urllib.request.urlopen(r,timeout=10)).get("items",[])
+    except Exception:
+        return []
+items=[]
+for t in topics: items+=f(t)
+seen=set();m=[]
+for it in items:
+    i=it.get("id")
+    if i in seen: continue
+    seen.add(i); m.append(it)
+print(json.dumps({"items":m,"total_count":len(m)}))`
+        searchProc.exec(["python3", "-c", py])
     }
 
     function processSearchResults(jsonText) {
