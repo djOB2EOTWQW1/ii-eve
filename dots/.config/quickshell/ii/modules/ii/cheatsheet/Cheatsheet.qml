@@ -13,6 +13,12 @@ import Quickshell.Hyprland
 Scope { // Scope
     id: root
 
+    // Load the panel once (on first open) and keep it alive, toggling visibility
+    // instead of destroying it — avoids re-creation rendering bugs with async
+    // extension pages.
+    property bool shown: false
+    onShownChanged: if (root.shown) cheatsheetLoader.active = true
+
     // cheatsheetPages contribution point: external extension tabs
     property var extensionPages: ExtensionManager.ready ? ExtensionManager.getContributionPoint("cheatsheetPages") : []
     Connections {
@@ -75,7 +81,7 @@ Scope { // Scope
 
         sourceComponent: PanelWindow { // Window
             id: cheatsheetRoot
-            visible: cheatsheetLoader.active
+            visible: root.shown
 
             anchors {
                 top: true
@@ -85,7 +91,7 @@ Scope { // Scope
             }
 
             function hide() {
-                cheatsheetLoader.active = false;
+                root.shown = false;
             }
             exclusiveZone: 0
             implicitWidth: cheatsheetBackground.width + Appearance.sizes.elevationMargin * 2
@@ -117,8 +123,13 @@ Scope { // Scope
                 if (loader && loader.item) loader.item.forceActiveFocus();
             }
             onVisibleChanged: {
-                if (visible) focusUpgradeTimer.start();
-                else _focusReady = false;
+                if (visible) {
+                    GlobalFocusGrab.addDismissable(cheatsheetRoot);
+                    focusUpgradeTimer.start();
+                } else {
+                    GlobalFocusGrab.removeDismissable(cheatsheetRoot);
+                    _focusReady = false;
+                }
             }
             color: "transparent"
 
@@ -126,9 +137,6 @@ Scope { // Scope
                 item: cheatsheetBackground
             }
 
-            Component.onCompleted: {
-                GlobalFocusGrab.addDismissable(cheatsheetRoot);
-            }
             Component.onDestruction: {
                 GlobalFocusGrab.removeDismissable(cheatsheetRoot);
             }
@@ -292,15 +300,15 @@ Scope { // Scope
         target: "cheatsheet"
 
         function toggle(): void {
-            cheatsheetLoader.active = !cheatsheetLoader.active;
+            root.shown = !root.shown;
         }
 
         function close(): void {
-            cheatsheetLoader.active = false;
+            root.shown = false;
         }
 
         function open(): void {
-            cheatsheetLoader.active = true;
+            root.shown = true;
         }
     }
 
@@ -309,7 +317,7 @@ Scope { // Scope
         description: "Toggles cheatsheet on press"
 
         onPressed: {
-            cheatsheetLoader.active = !cheatsheetLoader.active;
+            root.shown = !root.shown;
         }
     }
 
@@ -318,7 +326,7 @@ Scope { // Scope
         description: "Opens cheatsheet on press"
 
         onPressed: {
-            cheatsheetLoader.active = true;
+            root.shown = true;
         }
     }
 
@@ -327,7 +335,7 @@ Scope { // Scope
         description: "Closes cheatsheet on press"
 
         onPressed: {
-            cheatsheetLoader.active = false;
+            root.shown = false;
         }
     }
 }
