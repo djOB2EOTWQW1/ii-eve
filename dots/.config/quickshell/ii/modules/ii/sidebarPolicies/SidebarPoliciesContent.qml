@@ -28,9 +28,7 @@ Item {
     }
 
     property var tabButtonList: [
-        ...root.extensionPages
-            .filter(p => !ExtensionManager.getExtensionConfig(p.extensionId, "hideTab", false))
-            .map(p => ({icon: p.icon, name: p.title}))
+        ...root.extensionPages.map(p => ({icon: p.icon, name: p.title}))
     ]
     property int tabCount: swipeView.count
 
