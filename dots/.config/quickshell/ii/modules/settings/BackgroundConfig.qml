@@ -137,6 +137,20 @@ ContentPage {
     }
 
     ContentSection {
+        icon: "wallpaper"
+        title: Translation.tr("Wallpaper selector")
+
+        ConfigSwitch {
+            buttonIcon: "favorite"
+            text: Translation.tr("Anime wallpapers (Homework folder + Konachan)")
+            checked: Config.options.wallpaperSelector.animeWallpapers
+            onCheckedChanged: {
+                Config.options.wallpaperSelector.animeWallpapers = checked;
+            }
+        }
+    }
+
+    ContentSection {
         icon: "music_note"
         title: Translation.tr("Media mode")
         tooltip: Translation.tr("Toggle the mode with a keybind that executes 'quickshell:mediaModeToggle'\nExample: bindd = Super, Z, Toggle media mode, global, quickshell:mediaModeToggle")

@@ -889,6 +889,7 @@ Singleton {
 
             property JsonObject wallpaperSelector: JsonObject {
                 property bool useSystemFileDialog: false
+                property bool animeWallpapers: false // Homework folder + Konachan random-wallpaper button
                 property list<var> directories: [
                     {
                         "icon": "wallpaper",

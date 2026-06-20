@@ -282,7 +282,7 @@ ApplicationWindow {
                         Layout.alignment: Qt.AlignHCenter
                         RippleButtonWithIcon {
                             id: rndWallBtn
-                            visible: Config.options.policies.weeb === 1
+                            visible: Config.options.wallpaperSelector.animeWallpapers
                             Layout.alignment: Qt.AlignHCenter
                             buttonRadius: Appearance.rounding.small
                             materialIcon: "ifl"
