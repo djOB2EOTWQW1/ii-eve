@@ -26,18 +26,40 @@ Scope { // Scope
         { key: "commands",  icon: "terminal",       name: Translation.tr("Commands"),   component: commandsComponent },
     ]
 
+    // cheatsheetPages contribution point: external extension tabs
+    property var extensionPages: ExtensionManager.ready ? ExtensionManager.getContributionPoint("cheatsheetPages") : []
+    Connections {
+        target: ExtensionManager
+        function onRefreshExtensions() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheetPages") }
+        function onExtensionInstalled() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheetPages") }
+        function onExtensionRemoved() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheetPages") }
+        function onExtensionToggled() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheetPages") }
+    }
+    readonly property var extensionTabs: root.extensionPages.map(p => ({
+        key: "ext:" + p.extensionId + ":" + p.identifier,
+        icon: p.icon || "extension",
+        name: p.title || p.identifier,
+        component: ExtensionManager.loadExtensionQmlComponent(p.fullPath),
+        extensionId: p.extensionId
+    }))
+
     readonly property var visibleTabs: {
         const v = Config.options.cheatsheet.visibleTabs;
-        if (!v) return root.allTabs;
-        // Explicit reads so QML binding analyzer tracks each bool
-        const flags = {
-            timetable: v.timetable,
-            keybinds: v.keybinds,
-            elements: v.elements,
-            commands: v.commands,
-        };
-        const filtered = root.allTabs.filter(t => flags[t.key] === true);
-        return filtered.length > 0 ? filtered : [root.allTabs.find(t => t.key === "keybinds")];
+        let builtin;
+        if (!v) {
+            builtin = root.allTabs;
+        } else {
+            // Explicit reads so QML binding analyzer tracks each bool
+            const flags = {
+                timetable: v.timetable,
+                keybinds: v.keybinds,
+                elements: v.elements,
+                commands: v.commands,
+            };
+            const filtered = root.allTabs.filter(t => flags[t.key] === true);
+            builtin = filtered.length > 0 ? filtered : [root.allTabs.find(t => t.key === "keybinds")];
+        }
+        return builtin.concat(root.extensionTabs);
     }
 
     readonly property var tabButtonList: root.visibleTabs.map(t => ({ icon: t.icon, name: t.name }))
@@ -230,6 +252,20 @@ Scope { // Scope
                             delegate: Loader {
                                 required property var modelData
                                 sourceComponent: modelData.component
+                                onLoaded: {
+                                    if (modelData.extensionId && item) {
+                                        if ("extensionId" in item) {
+                                            item.extensionId = modelData.extensionId;
+                                        } else {
+                                            Object.defineProperty(item, "extensionId", {
+                                                value: modelData.extensionId,
+                                                writable: true,
+                                                configurable: true,
+                                                enumerable: true
+                                            });
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
