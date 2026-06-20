@@ -30,7 +30,42 @@ Scope { // Scope
         extensionId: p.extensionId
     }))
 
-    readonly property var visibleTabs: root.extensionTabs
+    property int _pageLoadTick: 0
+    Component {
+        id: emptyPlaceholderComponent
+        Item {
+            implicitWidth: 420
+            implicitHeight: 260
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: 10
+                MaterialSymbol {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "extension_off"
+                    iconSize: 56
+                    color: Appearance.colors.colSubtext
+                }
+                StyledText {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: Translation.tr("No cheat sheet pages")
+                    font.pixelSize: Appearance.font.pixelSize.large
+                    color: Appearance.colors.colOnLayer0
+                }
+                StyledText {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.maximumWidth: 360
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                    text: Translation.tr("Enable a cheat sheet extension in Settings → Extensions to add pages here.")
+                    color: Appearance.colors.colSubtext
+                }
+            }
+        }
+    }
+
+    readonly property var visibleTabs: root.extensionTabs.length > 0
+        ? root.extensionTabs
+        : [{ key: "empty", icon: "extension_off", name: Translation.tr("Cheat sheet"), component: emptyPlaceholderComponent }]
 
     readonly property var tabButtonList: root.visibleTabs.map(t => ({ icon: t.icon, name: t.name }))
 
@@ -204,8 +239,16 @@ Scope { // Scope
                             }
                         }
 
-                        implicitWidth: Math.max.apply(null, contentChildren.map(child => child.implicitWidth || 0))
-                        implicitHeight: Math.max.apply(null, contentChildren.map(child => child.implicitHeight || 0))
+                        implicitWidth: {
+                            root._pageLoadTick; // re-evaluate when an (async) extension page loads
+                            const w = Math.max.apply(null, contentChildren.map(child => child.implicitWidth || 0));
+                            return (isFinite(w) && w > 0) ? w : 420;
+                        }
+                        implicitHeight: {
+                            root._pageLoadTick;
+                            const h = Math.max.apply(null, contentChildren.map(child => child.implicitHeight || 0));
+                            return (isFinite(h) && h > 0) ? h : 260;
+                        }
 
                         clip: true
                         layer.enabled: true
@@ -235,6 +278,7 @@ Scope { // Scope
                                             });
                                         }
                                     }
+                                    root._pageLoadTick++; // force SwipeView implicit-size recompute
                                 }
                             }
                         }
