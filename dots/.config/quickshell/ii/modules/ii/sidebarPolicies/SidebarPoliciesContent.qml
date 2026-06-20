@@ -12,8 +12,6 @@ Item {
     required property var scopeRoot
     property int sidebarPadding: 10
     anchors.fill: parent
-    property bool animeEnabled: Config.options.policies.weeb !== 0
-    property bool animeCloset: Config.options.policies.weeb === 2
 
     property bool _sidebarExtended: scopeRoot.extend
     property int _maxTextTabs: _sidebarExtended ? 4 : 3
@@ -30,7 +28,6 @@ Item {
     }
 
     property var tabButtonList: [
-        ...((root.animeEnabled && !root.animeCloset) ? [{"icon": "bookmark_heart", "name": Translation.tr("Anime")}] : []),
         ...root.extensionPages
             .filter(p => !ExtensionManager.getExtensionConfig(p.extensionId, "hideTab", false))
             .map(p => ({icon: p.icon, name: p.title}))
@@ -127,23 +124,18 @@ Item {
                 }
 
                 contentChildren: [
-                    ...((root.tabButtonList.length === 0 || root.animeCloset) ? [placeholder.createObject()] : []),
-                    ...(root.animeEnabled ? [anime.createObject()] : []),
+                    ...((root.tabButtonList.length === 0) ? [placeholder.createObject()] : []),
                     ...root.extensionPages.map(p => root.createExtensionPage(p)).filter(item => item)
                 ]
             }
         }
 
         Component {
-            id: anime
-            Anime {}
-        }
-        Component {
             id: placeholder
             Item {
                 StyledText {
                     anchors.centerIn: parent
-                    text: root.animeCloset ? Translation.tr("Nothing") : Translation.tr("Enjoy your empty sidebar...")
+                    text: Translation.tr("Enjoy your empty sidebar...")
                     color: Appearance.colors.colSubtext
                 }
             }
