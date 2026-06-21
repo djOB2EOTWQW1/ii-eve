@@ -19,14 +19,14 @@ Scope { // Scope
     property bool shown: false
     onShownChanged: if (root.shown) cheatsheetLoader.active = true
 
-    // cheatsheetPages contribution point: external extension tabs
-    property var extensionPages: ExtensionManager.ready ? ExtensionManager.getContributionPoint("cheatsheetPages") : []
+    // cheatsheet contribution point: external extension tabs
+    property var extensionPages: ExtensionManager.ready ? ExtensionManager.getContributionPoint("cheatsheet") : []
     Connections {
         target: ExtensionManager
-        function onRefreshExtensions() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheetPages") }
-        function onExtensionInstalled() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheetPages") }
-        function onExtensionRemoved() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheetPages") }
-        function onExtensionToggled() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheetPages") }
+        function onRefreshExtensions() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheet") }
+        function onExtensionInstalled() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheet") }
+        function onExtensionRemoved() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheet") }
+        function onExtensionToggled() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheet") }
     }
     readonly property var extensionTabs: root.extensionPages.map(p => ({
         key: "ext:" + p.extensionId + ":" + p.identifier,

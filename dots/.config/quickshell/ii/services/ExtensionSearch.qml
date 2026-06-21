@@ -52,7 +52,7 @@ Singleton {
 topics=${JSON.stringify(root.searchTopics)}
 def f(t):
     try:
-        r=urllib.request.Request("https://api.github.com/search/repositories?q="+t+"+in:topic&per_page=50",headers={"Accept":"application/vnd.github+json"})
+        r=urllib.request.Request("https://api.github.com/search/repositories?q=%22"+t+"%22+in:topic&per_page=50",headers={"Accept":"application/vnd.github+json"})
         return json.load(urllib.request.urlopen(r,timeout=10)).get("items",[])
     except Exception:
         return []
