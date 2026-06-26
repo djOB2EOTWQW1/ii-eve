@@ -1,25 +1,22 @@
 #!/usr/bin/env bash
 
-# echo "SCRIPT STARTED $(date)" >> /tmp/region-record.log
-
 CONFIG_FILE="$HOME/.config/illogical-impulse/config.json"
-JSON_PATH=".screenRecord.savePath"
-
 STATE_FILE="$HOME/.local/state/quickshell/states.json"
 STATE_JSON_PATH=".screenRecord.active"
 
-CUSTOM_PATH=$(jq -r "$JSON_PATH" "$CONFIG_FILE" 2>/dev/null)
+cfg() { jq -r "$1 // empty" "$CONFIG_FILE" 2>/dev/null; }
 
-RECORDING_DIR=""
+CUSTOM_PATH="$(cfg '.screenRecord.savePath')"
+ENCODER="$(cfg '.screenRecord.encoder')";       ENCODER="${ENCODER:-auto}"
+DEVICE_CFG="$(cfg '.screenRecord.device')"
+FRAMERATE="$(cfg '.screenRecord.framerate')";   FRAMERATE="${FRAMERATE:-60}"
+QUALITY="$(cfg '.screenRecord.quality')";        QUALITY="${QUALITY:-24}"
+AUDIO_CODEC="$(cfg '.screenRecord.audioCodec')"
+
+RECORDING_DIR="${CUSTOM_PATH:-$HOME/Videos}"
 
 TIMER_PID=""
 SECONDS_ELAPSED=-1
-
-if [[ -n "$CUSTOM_PATH" ]]; then
-    RECORDING_DIR="$CUSTOM_PATH"
-else
-    RECORDING_DIR="$HOME/Videos" # Use default path
-fi
 
 start_timer() {
     if [[ -n "$TIMER_PID" ]]; then
@@ -40,20 +37,18 @@ stop_timer() {
         kill "$TIMER_PID" 2>/dev/null
         wait "$TIMER_PID" 2>/dev/null
         TIMER_PID=""
-        jq ".screenRecord.seconds = 0" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE" # setting it to 0 after killing the timer
+        jq ".screenRecord.seconds = 0" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
     fi
 }
 
-
 trap stop_timer EXIT
-
 
 getdate() {
     date '+%Y-%m-%d_%H.%M.%S'
 }
 
 getaudiooutput() {
-    pactl list sources | grep 'Name' | grep 'monitor' | cut -d ' ' -f2
+    pactl list sources | grep 'Name' | grep 'monitor' | cut -d ' ' -f2 | head -n1
 }
 getactivemonitor() {
     hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name'
@@ -69,11 +64,15 @@ updatestate() {
     fi
 }
 
+# Sets global array ENC_ARGS. Software-only for now; Task 3 adds VAAPI.
+resolve_encoder_args() {
+    ENC_ARGS=(--pixel-format yuv420p -p "crf=$QUALITY")
+}
 
 mkdir -p "$RECORDING_DIR"
 cd "$RECORDING_DIR" || exit
 
-# parse --region <value> without modifying $@ so other flags like --fullscreen still work
+# parse flags without consuming $@ ordering
 ARGS=("$@")
 MANUAL_REGION=""
 SOUND_FLAG=0
@@ -94,21 +93,15 @@ for ((i=0;i<${#ARGS[@]};i++)); do
     fi
 done
 
-if pgrep wf-recorder > /dev/null; then
+if pgrep -x wf-recorder > /dev/null; then
     notify-send "Recording Stopped" "Stopped" -a 'Recorder' &
     updatestate false
-    pkill wf-recorder &
+    pkill -INT -x wf-recorder
 else
-    if [[ $FULLSCREEN_FLAG -eq 1 ]]; then
-        notify-send "Starting recording" 'recording_'"$(getdate)"'.mp4' -a 'Recorder' & disown
-        updatestate true
-        if [[ $SOUND_FLAG -eq 1 ]]; then
-            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4' --audio="$(getaudiooutput)"
-        else
-            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4'
-        fi
-    else
-        # If a manual region was provided via --region, use it; otherwise run slurp as before.
+    FILENAME="recording_$(getdate).mp4"
+
+    GEO_ARGS=()
+    if [[ $FULLSCREEN_FLAG -ne 1 ]]; then
         if [[ -n "$MANUAL_REGION" ]]; then
             region="$MANUAL_REGION"
         else
@@ -118,22 +111,30 @@ else
                 exit 1
             fi
         fi
-
         pos="${region%% *}"      # x,y
         size="${region##* }"     # WxH
         x="${pos%,*}"
         y="${pos#*,}"
-        geometry="${x},${y} ${size}"
-
-        notify-send "Starting recording" 'recording_'"$(getdate)"'.mp4' -a 'Recorder' & disown
-        updatestate true
-        if [[ $SOUND_FLAG -eq 1 ]]; then
-            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4'  --geometry "$geometry" --audio="$(getaudiooutput)"
-        else
-            # echo "SCRIPT DEBUG: wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4'  --geometry "$geometry"" >> /tmp/region-record.log
-            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4'  --geometry "$geometry"
-        fi
+        GEO_ARGS=(--geometry "${x},${y} ${size}")
     fi
-fi
 
-# echo "SCRIPT EXIT $(date)" >> /tmp/region-record.log
+    RATE_ARGS=()
+    if [[ "$FRAMERATE" =~ ^[0-9]+$ ]] && (( FRAMERATE > 0 )); then
+        RATE_ARGS=(-r "$FRAMERATE")
+    fi
+
+    AUDIO_ARGS=()
+    if [[ $SOUND_FLAG -eq 1 ]]; then
+        AUDIO_ARGS=(--audio="$(getaudiooutput)")
+        [[ -n "$AUDIO_CODEC" ]] && AUDIO_ARGS+=(-C "$AUDIO_CODEC")
+    fi
+
+    resolve_encoder_args
+
+    notify-send "Starting recording" "$FILENAME" -a 'Recorder' & disown
+    updatestate true
+
+    cmd=(wf-recorder -o "$(getactivemonitor)" -f "./$FILENAME"
+         "${ENC_ARGS[@]}" "${RATE_ARGS[@]}" "${GEO_ARGS[@]}" "${AUDIO_ARGS[@]}")
+    "${cmd[@]}"
+fi
