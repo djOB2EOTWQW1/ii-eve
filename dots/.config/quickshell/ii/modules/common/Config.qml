@@ -834,6 +834,11 @@ Singleton {
 
             property JsonObject screenRecord: JsonObject {
                 property string savePath: Directories.videos.replace("file://", "") // strip "file://"
+                property string encoder: "auto" // "auto" | "hardware" | "software"
+                property string device: "" // VAAPI render node override; empty = auto-pick
+                property int framerate: 60 // 0 = native monitor rate
+                property int quality: 24 // qp (vaapi) / crf (x264); lower = better
+                property string audioCodec: "" // empty = wf-recorder default
             }
 
             property JsonObject screenSnip: JsonObject {
