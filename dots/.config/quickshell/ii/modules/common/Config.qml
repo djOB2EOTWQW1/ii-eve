@@ -473,6 +473,51 @@ Singleton {
                         }
                     ]
                 }
+                // Separate layout used only by the vertical bar (left/center/right
+                // map to top/middle/bottom). Curated to avoid wide components that
+                // overflow vertically.
+                property JsonObject verticalLayouts: JsonObject {
+                    property list<var> left: [
+                        {
+                            id: "policies_panel_button"
+                        }
+                    ]
+                    property list<var> center: [
+                        {
+                            id: "music_player"
+                        },
+                        {
+                            id: "workspaces",
+                            centered: true
+                        },
+                        {
+                            id: "system_monitor"
+                        }
+                    ]
+                    property list<var> right: [
+                        {
+                            id: "record_indicator"
+                        },
+                        {
+                            id: "screen_share_indicator"
+                        },
+                        {
+                            id: "keyboard_layout"
+                        },
+                        {
+                            id: "clock"
+                        },
+                        {
+                            id: "battery"
+                        },
+                        {
+                            id: "system_tray"
+                        },
+                        {
+                            id: "dashboard_panel_button"
+                        }
+                    ]
+                }
                 property JsonObject tooltips: JsonObject {
                     property bool clickToShow: false
                     property bool compactPopups: false

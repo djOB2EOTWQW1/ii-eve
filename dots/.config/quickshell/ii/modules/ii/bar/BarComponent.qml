@@ -24,10 +24,11 @@ Item {
 
     function toggleVisible(visibility) {
         visible = visibility;
+        const layouts = vertical ? Config.options.bar.verticalLayouts : Config.options.bar.layouts;
         let layout = null;
-        if (barSection == 0) layout = Config.options.bar.layouts.left;
-        else if (barSection == 1) layout = Config.options.bar.layouts.center;
-        else if (barSection == 2) layout = Config.options.bar.layouts.right;
+        if (barSection == 0) layout = layouts.left;
+        else if (barSection == 1) layout = layouts.center;
+        else if (barSection == 2) layout = layouts.right;
         const entry = layout?.[originalIndex];
         if (entry && entry.visible !== visibility)
             entry.visible = visibility;

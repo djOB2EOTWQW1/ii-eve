@@ -9,8 +9,10 @@ import QtQml.Models
 ContentPage {
     id: page
     forceWidth: true
-    readonly property int index: 2 
+    readonly property int index: 2
     property bool register: parent.register ?? false
+
+    readonly property bool barVertical: Config.options.bar.vertical
 
     property var componentMap: ({
         "active_window": activeWindow,
@@ -32,14 +34,17 @@ ContentPage {
     ContentSection {
         icon: "mobile_layout"
         title: Translation.tr("Bar layout")
+
         ContentSubsection {
-            title: Translation.tr("Left layout")
-            tooltip: Translation.tr("Top layout in vertical mode")
+            title: page.barVertical ? Translation.tr("Top layout") : Translation.tr("Left layout")
+            tooltip: page.barVertical ? Translation.tr("Editing the vertical bar layout") : Translation.tr("Editing the horizontal bar layout")
             ConfigListView {
                 barSection: 0
-                listModel: Config.options.bar.layouts.left
+                vertical: page.barVertical
+                listModel: page.barVertical ? Config.options.bar.verticalLayouts.left : Config.options.bar.layouts.left
                 onUpdated: (newList) => {
-                    Config.options.bar.layouts.left = newList
+                    if (page.barVertical) Config.options.bar.verticalLayouts.left = newList
+                    else Config.options.bar.layouts.left = newList
                 }
             }
         }
@@ -48,20 +53,24 @@ ContentPage {
             tooltip: Translation.tr("Center the component with the button")
             ConfigListView {
                 barSection: 1
-                listModel: Config.options.bar.layouts.center
+                vertical: page.barVertical
+                listModel: page.barVertical ? Config.options.bar.verticalLayouts.center : Config.options.bar.layouts.center
                 onUpdated: (newList) => {
-                    Config.options.bar.layouts.center = newList
+                    if (page.barVertical) Config.options.bar.verticalLayouts.center = newList
+                    else Config.options.bar.layouts.center = newList
                 }
             }
         }
         ContentSubsection {
-            title: Translation.tr("Right layout")
-            tooltip: Translation.tr("Bottom layout in vertical mode")
+            title: page.barVertical ? Translation.tr("Bottom layout") : Translation.tr("Right layout")
+            tooltip: page.barVertical ? Translation.tr("Editing the vertical bar layout") : Translation.tr("Editing the horizontal bar layout")
             ConfigListView {
                 barSection: 2
-                listModel: Config.options.bar.layouts.right
+                vertical: page.barVertical
+                listModel: page.barVertical ? Config.options.bar.verticalLayouts.right : Config.options.bar.layouts.right
                 onUpdated: (newList) => {
-                    Config.options.bar.layouts.right = newList
+                    if (page.barVertical) Config.options.bar.verticalLayouts.right = newList
+                    else Config.options.bar.layouts.right = newList
                 }
             }
         }

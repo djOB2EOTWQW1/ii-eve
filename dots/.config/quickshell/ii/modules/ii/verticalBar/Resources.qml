@@ -154,9 +154,24 @@ MouseArea {
             percentage: ResourceUsage.cpuUsage
             warningThreshold01: Config.options.bar.resources.cpuWarningThreshold / 100.0
         }
+
+        ResourceWithDot {
+            iconName: "display_settings"
+            percentage: ResourceUsage.gpuUsage
+        }
     }
 
-    Bar.ResourcesPopup {
-        hoverTarget: root
+    Loader {
+        active: !Config.options.bar.resources.expressivePopup
+        sourceComponent: Bar.ResourcesPopup {
+            hoverTarget: root
+        }
+    }
+
+    Loader {
+        active: Config.options.bar.resources.expressivePopup
+        sourceComponent: Bar.ExpressiveResourcesPopup {
+            hoverTarget: root
+        }
     }
 }
