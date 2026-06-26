@@ -189,6 +189,47 @@ ContentPage {
     }
 
     ContentSection {
+        icon: "screen_record"
+        title: Translation.tr("Screen recording")
+
+        ConfigSelectionArray {
+            currentValue: Config.options.screenRecord.encoder
+            onSelected: newValue => {
+                Config.options.screenRecord.encoder = newValue;
+            }
+            options: [
+                { displayName: Translation.tr("Auto"), icon: "auto_awesome", value: "auto" },
+                { displayName: Translation.tr("Hardware"), icon: "memory", value: "hardware" },
+                { displayName: Translation.tr("Software"), icon: "developer_board", value: "software" }
+            ]
+        }
+
+        ConfigSpinBox {
+            icon: "60fps"
+            text: Translation.tr("Framerate (0 = native)")
+            value: Config.options.screenRecord.framerate
+            from: 0
+            to: 240
+            stepSize: 5
+            onValueChanged: {
+                Config.options.screenRecord.framerate = value;
+            }
+        }
+
+        ConfigSpinBox {
+            icon: "tune"
+            text: Translation.tr("Quality (lower = better)")
+            value: Config.options.screenRecord.quality
+            from: 0
+            to: 51
+            stepSize: 1
+            onValueChanged: {
+                Config.options.screenRecord.quality = value;
+            }
+        }
+    }
+
+    ContentSection {
         icon: "devices"
         title: Translation.tr("LocalSend")
         tooltip: Translation.tr("You must have the localsend-cli installed\nCheck repo wiki for more information")
