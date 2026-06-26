@@ -12,62 +12,6 @@
 > Hyprland 0.55 update:
 > If you are still on the versions before 0.55, you should not update the shell
 
-<div align="center">
-  <h2>• So what is this? •</h2>
-</div>
-
-I've been daily-driving illogical-impulse for a while, then moved to ii-vynx, and at some point I started piling up enough small tweaks of my own that it made sense to keep them in their own repo. So here we are - **ii-eve**.
-
-Nothing revolutionary. Same Hyprland + Quickshell setup you already know, just with a few features I missed and a couple of things I wanted to work better.
-
-<div align="center">
-  <h2>• What's different from ii-vynx •</h2>
-</div>
-
-If you're already on ii-vynx (or end-4's dots), here's the short version of what you actually get on top:
-
-### App Launcher
-
-The big one. A full app launcher panel with:
-
-- **Folders** - group apps however you want, with previews on the tile
-- **Drag-and-drop reordering** - move apps inside folders or rearrange the main grid live, with proper shift animations
-- **Selection mode** - multi-select apps for bulk actions
-- **Vimium-style keyboard navigation** - hit a key, jump to an app, no mouse needed
-- **Help overlay** - `Ctrl+/` shows you every shortcut available
-- **GPU launching** - right-click → launch with dGPU or iGPU, or set a default
-- **Renaming, context menus, empty-state hints** - basically everything you'd expect from a launcher that someone actually uses every day
-
-This doesn't exist in ii-vynx or end-4's dots - it's the main reason this fork exists.
-
-### Anime Booru - actually usable
-
-The Booru module in upstream worked, but it had rough edges. Eve cleans them up:
-
-- **API support added for Danbooru / Gelbooru** if you do want to log in (favorites, etc.)
-- **New commands** - page limit, thumbnail/image switching, history (with deduplication), Gelbooru `pass_hash` for favorites
-- **Unified provider auth UI** so you're not hunting for where each provider hides its settings
-- **Settings button** for Gelbooru API / User ID / Pass Hash / provider switching, right where you'd expect it
-- API key instructions banner so you know what each provider actually needs
-
-### Smaller things
-
-Reworked system tray from Elpo - cleaner and more polished look
-- Trying to fix Quickshell warnings as I find them (it's an ongoing thing, not a one-shot cleanup)
-- Various small QoL fixes scattered around
-
-<div align="center">
-  <h2>• Should you use this instead of ii-vynx? •</h2>
-</div>
-
-Honestly? **Use ii-vynx if you don't care about the App Launcher and don't use the Booru module much.** vaguesyntax keeps it well-maintained and that's a great baseline.
-
-**Use ii-eve if:**
-- You want a real app launcher with folders + drag-reorder, not just a dmenu-style search
-- You actually use the anime booru and want it to behave properly (especially without API keys)
-- You don't mind tracking a smaller, more personal fork
-
-I keep this fork up to date with ii-vynx's changes, so you're not missing out on the upstream work either.
 
 <div align="center">
      <h2>• screenshots •</h2>
