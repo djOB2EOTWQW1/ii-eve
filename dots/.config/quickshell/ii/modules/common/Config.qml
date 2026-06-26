@@ -233,6 +233,7 @@ Singleton {
                             property bool hourMarks: false
                             property bool dateInClock: true
                             property bool constantlyRotate: false
+                            property bool turnOffRotationOnTiledApps: false
                         }
                         property JsonObject digital: JsonObject {
                             property bool adaptiveAlignment: true
