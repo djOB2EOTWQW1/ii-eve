@@ -19,8 +19,12 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.namespace: "quickshell:regionSelector"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+    WlrLayershell.keyboardFocus: root.phase === RegionSelection.Phase.Post ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand
     exclusionMode: ExclusionMode.Ignore
+    // Post phase is just a recording indicator: empty input region so clicks/keys pass through.
+    mask: Region {
+        item: root.phase === RegionSelection.Phase.Post ? null : mouseArea
+    }
     anchors {
         left: true
         right: true
@@ -217,6 +221,16 @@ PanelWindow {
         root.visible = true;
     }
 
+    // Recording stopped elsewhere (bar indicator, re-trigger) -> close the indicator overlay.
+    Connections {
+        target: Persistent.states.screenRecord
+        function onActiveChanged() {
+            if (root.phase === RegionSelection.Phase.Post && !Persistent.states.screenRecord.active) {
+                root.dismiss();
+            }
+        }
+    }
+
     Process {
         id: imageDetectionProcess
         command: ["bash", "-c", `${Directories.scriptPath}/images/find-regions-venv.sh ` 
@@ -348,6 +362,7 @@ PanelWindow {
 
     MouseArea {
         id: mouseArea
+        enabled: root.phase === RegionSelection.Phase.Select
         anchors.fill: parent
         cursorShape: Qt.CrossCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton
