@@ -64,9 +64,66 @@ updatestate() {
     fi
 }
 
-# Sets global array ENC_ARGS. Software-only for now; Task 3 adds VAAPI.
+_enc_fail() {
+    notify-send "Recording cancelled" "$1" -a 'Recorder' & disown
+    updatestate false
+    exit 1
+}
+
+probe_vaapi_node() {
+    local node="$1"
+    [[ -e "$node" ]] || return 1
+    ffmpeg -loglevel error -vaapi_device "$node" \
+        -f lavfi -i color=black:s=256x256:d=0.1 \
+        -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null - </dev/null >/dev/null 2>&1
+}
+
+probe_nvenc() {
+    ffmpeg -loglevel error \
+        -f lavfi -i color=black:s=256x256:d=0.1 \
+        -c:v h264_nvenc -f null - </dev/null >/dev/null 2>&1
+}
+
+detect_vaapi_node() {
+    if [[ -n "$DEVICE_CFG" ]]; then
+        probe_vaapi_node "$DEVICE_CFG" && { echo "$DEVICE_CFG"; return 0; }
+        return 1
+    fi
+    local node
+    for node in /dev/dri/renderD12*; do
+        probe_vaapi_node "$node" && { echo "$node"; return 0; }
+    done
+    return 1
+}
+
+# Sets global array ENC_ARGS based on $ENCODER (auto|hardware|software|vaapi|nvenc).
+# auto: VAAPI -> NVENC -> software. hardware: VAAPI -> NVENC -> abort.
 resolve_encoder_args() {
-    ENC_ARGS=(--pixel-format yuv420p -p "crf=$QUALITY")
+    local node=""
+    case "$ENCODER" in
+        software)
+            ENC_ARGS=(--pixel-format yuv420p -p "crf=$QUALITY")
+            ;;
+        vaapi)
+            node="$(detect_vaapi_node)" || _enc_fail "No working VAAPI device"
+            ENC_ARGS=(-c h264_vaapi -d "$node" -p "qp=$QUALITY")
+            ;;
+        nvenc)
+            probe_nvenc || _enc_fail "NVENC not available"
+            ENC_ARGS=(-c h264_nvenc -p "qp=$QUALITY")
+            ;;
+        hardware|*)
+            if node="$(detect_vaapi_node)"; then
+                ENC_ARGS=(-c h264_vaapi -d "$node" -p "qp=$QUALITY")
+            elif probe_nvenc; then
+                ENC_ARGS=(-c h264_nvenc -p "qp=$QUALITY")
+            elif [[ "$ENCODER" == "hardware" ]]; then
+                _enc_fail "No working hardware encoder (VAAPI/NVENC)"
+            else
+                ENC_ARGS=(--pixel-format yuv420p -p "crf=$QUALITY")
+            fi
+            ;;
+    esac
 }
 
 mkdir -p "$RECORDING_DIR"
