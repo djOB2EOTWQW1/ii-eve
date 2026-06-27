@@ -1,81 +1,32 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 
 import qs.modules.common
 import QtQuick
 import Quickshell
-import Quickshell.Io
+import Quickshell.Hyprland
 import qs
 
 Singleton {
     id: root
 
-    readonly property string hyprlandConfigPath: Directories.home.replace("file://", "") + "/.local/share/ii-eve/hyprland.conf"
-    
-    Process {
-        id: configWriter
-        
-        running: false
-        property string pendingCommand: ""
-        command: ["bash", "-c", pendingCommand]
-
-        onExited: (exitCode, exitStatus) => {
-            // NOTE: This will not work bc we are running it detached
-            if (exitCode === 1) {
-                Quickshell.execDetached(["notify-send", Translation.tr("Couldn't change the setting"), Translation.tr("Make sure you have eve-cli installed"), "-a", "Shell"])
-            }
-        }
-    }
+    signal reloaded()
 
     function changeKey(key, value) {
-        if (configWriter.running) {
-            console.warn("[HyprlandConfig] Writer busy, skipping")
-            return
-        }
-
         if (/['"\\`$|&;]/.test(String(value)) || /['"\\`$|&;]/.test(String(key))) {
-            console.error("[HyprlandConfig] Unsafe characters rejected:", key, value)
+            console.error("[HyprlandSettings] Unsafe characters rejected:", key, value)
             return
         }
-
-        const tmpPath = "/tmp/hypr_config_write.tmp"
-        const path = root.hyprlandConfigPath
-        let sedCmd = ""
-
-        if (key.includes(":")) {
-            const parts = key.split(":")
-            const section = parts[0].trim()
-            const field = parts[1].trim()
-
-            
-            sedCmd = `${Directories.cliPath} hyprset key '${section}:${field}' '${value}' >/dev/null 2>&1 || true`
-        } else {
-            // idk.. put smthng here
-        }
-
-        //console.log("[HyprlandSettings] Running command:", sedCmd)
-        configWriter.pendingCommand = sedCmd
-        configWriter.startDetached()
+        if (!key.includes(":")) return
+        Quickshell.execDetached([Directories.cliPath, "hyprset", "key", key, String(value)])
     }
 
     function changeAnimation(animName, style) {
-        if (configWriter.running) {
-            console.warn("[HyprlandConfig] Writer busy, skipping")
+        if (/['"\\`$|&;]/.test(String(animName)) || /['"\\`$|&;]/.test(String(style))) {
+            console.error("[HyprlandSettings] Unsafe characters rejected:", animName, style)
             return
         }
-
-        const safeCheck = /['"\\`$|&;]/
-        if (safeCheck.test(String(animName)) || safeCheck.test(String(style))) {
-            console.error("[HyprlandConfig] Unsafe characters rejected:", animName, style)
-            return
-        }
-
-        const tmpPath = "/tmp/hypr_config_write.tmp"
-        const path = root.hyprlandConfigPath
-
-        const sedCmd = `${Directories.cliPath} hyprset anim '${animName}' '${style}' >/dev/null 2>&1 || true`
-
-        configWriter.pendingCommand = sedCmd
-        configWriter.startDetached()
+        Quickshell.execDetached([Directories.cliPath, "hyprset", "anim", animName, String(style)])
     }
 
     function setLayout(layout) {
@@ -87,5 +38,57 @@ Singleton {
 
     function setRounding(rounding) {
         changeKey("decoration:rounding", rounding)
+    }
+
+
+    //NOTE: We use bash -c cmd1 && cmd2 && cmd ..... to prevent race condition on setKeys and resetKeys
+
+    function setKeys(entries) {
+        var parts = []
+        var keys = Object.keys(entries)
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i]
+            var value = entries[key]
+            if (/['"\\`$|&;]/.test(String(value)) || /['"\\`$|&;]/.test(String(key))) {
+                console.error("[HyprlandSettings] Unsafe characters rejected:", key, value)
+                continue
+            }
+            if (!key.includes(":")) continue
+            parts.push(Directories.cliPath + " hyprset key " + key + " " + String(value))
+        }
+        if (parts.length > 0)
+            Quickshell.execDetached(["bash", "-c", parts.join(" && ")])
+    }
+
+    function reset(key) {
+        if (/['"\\`$|&;]/.test(String(key))) {
+            console.error("[HyprlandSettings] Unsafe characters rejected:", key)
+            return
+        }
+        Quickshell.execDetached([Directories.cliPath, "hyprset", "reset", key])
+    }
+
+    function resetKeys(keys) {
+        var parts = []
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i]
+            if (/['"\\`$|&;]/.test(String(key))) {
+                console.error("[HyprlandSettings] Unsafe characters rejected:", key)
+                continue
+            }
+            parts.push(Directories.cliPath + " hyprset reset " + key)
+        }
+        if (parts.length > 0)
+            Quickshell.execDetached(["bash", "-c", parts.join(" && ")])
+    }
+
+    Connections {
+        target: Hyprland
+
+        function onRawEvent(event) {
+            if (event.name == "configreloaded") {
+                root.reloaded()
+            }
+        }
     }
 }

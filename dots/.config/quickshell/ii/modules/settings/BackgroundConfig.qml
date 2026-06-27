@@ -65,6 +65,89 @@ ContentPage {
                 Config.options.background.animateWallpaperChanges = checked;
             }
         }
+        
+        ContentSubsection {
+            visible: Config.options.background.animateWallpaperChanges
+            title: Translation.tr("Wallpaper transition style")
+            
+            StyledComboBox {
+                Layout.fillWidth: true
+                buttonIcon: "masked_transitions"
+                textRole: "displayName"
+                model: [
+                    {
+                        displayName: Translation.tr("Radial Wipe"),
+                        icon: "circle",
+                        value: "radial"
+                    },
+                    {
+                        displayName: Translation.tr("Crossfade"),
+                        icon: "blur_on",
+                        value: "crossfade"
+                    },
+                    {
+                        displayName: Translation.tr("Linear Wipe"),
+                        icon: "swap_horiz",
+                        value: "wipe"
+                    },
+                    {
+                        displayName: Translation.tr("Diamond Wipe"),
+                        icon: "diamond",
+                        value: "diamond"
+                    },
+                    {
+                        displayName: Translation.tr("Slash Wipe"),
+                        icon: "timeline",
+                        value: "slash"
+                    },
+                    {
+                        displayName: Translation.tr("Outer Wipe"),
+                        icon: "radio_button_unchecked",
+                        value: "outer"
+                    },
+                    {
+                        displayName: Translation.tr("Wave Wipe"),
+                        icon: "water",
+                        value: "wave"
+                    }
+                ]
+                currentIndex: {
+                    const index = model.findIndex(item => item.value === Config.options.background.transitionType);
+                    return index !== -1 ? index : 0;
+                }
+                onActivated: index => {
+                    Config.options.background.transitionType = model[index].value;
+                }
+            }
+
+            ConfigSpinBox {
+                visible: Config.options.background.transitionType === "wipe" || Config.options.background.transitionType === "wave"
+                Layout.fillWidth: true
+                icon: "rotate_right"
+                text: Translation.tr("Wipe Angle (0° starts from left side)")
+                value: Config.options.background.wipeAngle
+                from: 0
+                to: 359
+                stepSize: 1
+                onValueChanged: {
+                    Config.options.background.wipeAngle = value;
+                }
+            }
+        }
+    }
+
+    ContentSection {
+        icon: "wallpaper"
+        title: Translation.tr("Wallpaper selector")
+
+        ConfigSwitch {
+            buttonIcon: "favorite"
+            text: Translation.tr("Anime wallpapers (Homework folder + Konachan)")
+            checked: Config.options.wallpaperSelector.animeWallpapers
+            onCheckedChanged: {
+                Config.options.wallpaperSelector.animeWallpapers = checked;
+            }
+        }
     }
 
     ContentSection {
@@ -191,8 +274,21 @@ ContentPage {
         }
 
 
+        ConfigSwitch {
+            buttonIcon: "lyrics"
+            text: Translation.tr("Show lyrics")
+            checked: Config.options.background.mediaMode.lyrics.enable
+            onCheckedChanged: {
+                Config.options.background.mediaMode.lyrics.enable = checked;
+            }
+            StyledToolTip {
+                text: Translation.tr("Independent of the bar's lyrics toggle")
+            }
+        }
+
         ContentSubsection {
             title: Translation.tr("Text highlight style")
+            enabled: Config.options.background.mediaMode.lyrics.enable
             ConfigSelectionArray {
                 currentValue: Config.options.background.mediaMode.syllable.textHighlightStyle
                 onSelected: newValue => {

@@ -41,7 +41,7 @@ Item { // Bar content region
 
 
     ////// Definning places of center modules //////
-    property var fullModel: Config.options?.bar?.layouts?.center
+    property var fullModel: Config.options?.bar?.verticalLayouts?.center
 
     property int centerIdx: (fullModel || []).findIndex(item => item.centered)
 
@@ -121,7 +121,7 @@ Item { // Bar content region
 
         Repeater {
             id: leftRepeater
-            model: Config.options.bar.layouts.left
+            model: Config.options.bar.verticalLayouts.left
             delegate: Bar.BarComponent {
                 vertical: true
                 list: leftRepeater.model
@@ -148,9 +148,9 @@ Item { // Bar content region
                 model: root.leftList
                 delegate: Bar.BarComponent {
                     vertical: true
-                    list: Config.options.bar.layouts.center
+                    list: Config.options.bar.verticalLayouts.center
                     barSection: 1
-                    originalIndex: Config.options.bar.layouts.center.findIndex(e => e.id === modelData.id) // we have to recalculate the index because repeater.model has changed
+                    originalIndex: Config.options.bar.verticalLayouts.center.findIndex(e => e.id === modelData.id) // we have to recalculate the index because repeater.model has changed
                 }
             }
         }
@@ -165,9 +165,9 @@ Item { // Bar content region
                 model: root.centerList
                 delegate: Bar.BarComponent {
                     vertical: true
-                    list: Config.options.bar.layouts.center
+                    list: Config.options.bar.verticalLayouts.center
                     barSection: 1
-                    originalIndex: Config.options.bar.layouts.center.findIndex(e => e.id === modelData.id)
+                    originalIndex: Config.options.bar.verticalLayouts.center.findIndex(e => e.id === modelData.id)
                 }
             }
         }
@@ -183,9 +183,9 @@ Item { // Bar content region
                 model: root.rightList
                 delegate: Bar.BarComponent {
                     vertical: true
-                    list: Config.options.bar.layouts.center
+                    list: Config.options.bar.verticalLayouts.center
                     barSection: 1
-                    originalIndex: Config.options.bar.layouts.center.findIndex(e => e.id === modelData.id)
+                    originalIndex: Config.options.bar.verticalLayouts.center.findIndex(e => e.id === modelData.id)
                 }
             }
         }
@@ -202,7 +202,7 @@ Item { // Bar content region
 
         Repeater {
             id: rightRepeater
-            model: Config.options.bar.layouts.right
+            model: Config.options.bar.verticalLayouts.right
             delegate: Bar.BarComponent {
                 vertical: true
                 list: rightRepeater.model

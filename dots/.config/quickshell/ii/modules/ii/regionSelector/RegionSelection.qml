@@ -19,8 +19,12 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.namespace: "quickshell:regionSelector"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+    WlrLayershell.keyboardFocus: root.phase === RegionSelection.Phase.Post ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand
     exclusionMode: ExclusionMode.Ignore
+    // Post phase is just a recording indicator: empty input region so clicks/keys pass through.
+    mask: Region {
+        item: root.phase === RegionSelection.Phase.Post ? null : mouseArea
+    }
     anchors {
         left: true
         right: true
@@ -28,7 +32,7 @@ PanelWindow {
         bottom: true
     }
 
-    enum SnipAction { Copy, Edit, Search, CharRecognition, Record, RecordWithSound, AskAI } 
+    enum SnipAction { Copy, Edit, Search, CharRecognition, Record, RecordWithSound, AskAI, Translate }
     enum SelectionMode { RectCorners, Circle }
     enum Phase { Select, Post }
     property var action: RegionSelection.SnipAction.Copy
@@ -217,6 +221,16 @@ PanelWindow {
         root.visible = true;
     }
 
+    // Recording stopped elsewhere (bar indicator, re-trigger) -> close the indicator overlay.
+    Connections {
+        target: Persistent.states.screenRecord
+        function onActiveChanged() {
+            if (root.phase === RegionSelection.Phase.Post && !Persistent.states.screenRecord.active) {
+                root.dismiss();
+            }
+        }
+    }
+
     Process {
         id: imageDetectionProcess
         command: ["bash", "-c", `${Directories.scriptPath}/images/find-regions-venv.sh ` 
@@ -272,6 +286,28 @@ PanelWindow {
         root.regionWidth = Math.max(0, Math.min(root.regionWidth, root.screen.width - root.regionX));
         root.regionHeight = Math.max(0, Math.min(root.regionHeight, root.screen.height - root.regionY));
 
+        // Region translate: close region selector first, then open the screen translator on
+        // the next tick so the two layer-shell surfaces never coexist (otherwise the
+        // compositor mis-routes pointer button events to the dismissed surface and pan stops
+        // working, even though wheel events still reach the new one).
+        if (root.action === RegionSelection.SnipAction.Translate) {
+            const regionInfo = {
+                screenName: root.screen.name,
+                x: root.regionX,
+                y: root.regionY,
+                width: root.regionWidth,
+                height: root.regionHeight,
+                monitorScale: root.monitorScale,
+                sourcePath: root.screenshotPath,
+            };
+            root.dismiss();
+            Qt.callLater(() => {
+                GlobalStates.screenTranslatorRegionInfo = regionInfo;
+                GlobalStates.screenTranslatorOpen = true;
+            });
+            return;
+        }
+
         // Adjust action
         if (root.action === RegionSelection.SnipAction.Copy || root.action === RegionSelection.SnipAction.Edit) { 
             root.action = root.mouseButton === Qt.RightButton ? RegionSelection.SnipAction.Edit : RegionSelection.SnipAction.Copy;
@@ -326,6 +362,7 @@ PanelWindow {
 
     MouseArea {
         id: mouseArea
+        enabled: root.phase === RegionSelection.Phase.Select
         anchors.fill: parent
         cursorShape: Qt.CrossCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton

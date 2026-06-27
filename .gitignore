@@ -16,4 +16,7 @@ __pycache__/
 # Emacs auto backup file
 *~
 
-.claude
+/docs
+
+# Superpowers brainstorming companion (local, do not commit)
+.superpowers/

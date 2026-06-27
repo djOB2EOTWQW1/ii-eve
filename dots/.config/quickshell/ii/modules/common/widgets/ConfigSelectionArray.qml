@@ -4,6 +4,7 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.modules.common.functions
+import qs.modules.ii.vimium
 
 Flow {
     id: root
@@ -14,24 +15,22 @@ Flow {
     property color colBackgroundActive: Appearance.colors.colSecondaryContainerActive
 
     spacing: 2
-    property var vimiumHints: []
-    property string vimiumTyped: ""
-    property bool vimiumActive: false
+    property var registry: null
     property list<var> options: [
         {
             "displayName": "Option 1",
             "icon": "check",
-            "shape": "Arch", // Optional (for material shape)
-            "symbol": "google-gemini-symbolic", // Optional (for custom icons)
-            "color": "red", // Optional (for custom shape color)
+            "shape": "Arch",
+            "symbol": "google-gemini-symbolic",
+            "color": "red",
             "value": 1
         },
         {
             "displayName": "Option 2",
             "icon": "close",
-            "shape": "Circle", // Optional (for material shape)
-            "symbol": "mistral-symbolic", // Optional (for custom icons)
-            "color": "blue", // Optional (for custom shape color)
+            "shape": "Circle",
+            "symbol": "mistral-symbolic",
+            "color": "blue",
             "value": 2
         },
     ]
@@ -61,8 +60,10 @@ Flow {
             buttonShape: modelData.shape || ""
             buttonSymbol: modelData.symbol || ""
             buttonColor: modelData.color || ""
-            buttonText: modelData.displayName
-            toggled: root.currentValue == modelData.value
+            buttonText: modelData.displayName ?? modelData
+            enabled: modelData.enabled !== undefined ? modelData.enabled : true
+            opacity: enabled ? 1.0 : 0.5
+            toggled: root.currentValue == (modelData.value ?? modelData)
             releaseAction: modelData.releaseAction || ""
 
             colBackground: root.colBackground
@@ -70,33 +71,17 @@ Flow {
             colBackgroundActive: root.colBackgroundActive
 
             onClicked: {
-                root.selected(modelData.value);
+                root.selected(modelData.value ?? modelData);
             }
 
-            Rectangle {
-                property string hintText: root.vimiumHints[index] ?? ""
-                visible: root.vimiumActive && hintText.length > 0 && hintText.startsWith(root.vimiumTyped)
+            VimiumTarget {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.rightMargin: -5
                 anchors.topMargin: -5
-                width: hintLabel.implicitWidth + 10
-                height: hintLabel.implicitHeight + 6
-                color: "#f5e100"
-                border.color: "#a89800"
-                border.width: 1
-                radius: 3
-                z: 300
-
-                Text {
-                    id: hintLabel
-                    anchors.centerIn: parent
-                    text: parent.hintText
-                    font.pixelSize: 11
-                    font.bold: true
-                    font.family: "monospace"
-                    color: "#1a1200"
-                }
+                registry: root.registry
+                participates: paletteButton.enabled
+                onActivated: root.selected(paletteButton.modelData.value)
             }
         }
     }

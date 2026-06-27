@@ -16,6 +16,8 @@ Singleton {
     property bool appLauncherOpen: false
     property bool binarySelectorOpen: false
     property string binarySelectorTargetFolderId: ""
+    property bool bluetoothConnectionPopupOpen: false
+    property var bluetoothConnectionPopupDevice: null
     property bool barOpen: true
     property bool crosshairOpen: false
     property bool mediaControlsOpen: false
@@ -30,6 +32,7 @@ Singleton {
     property bool screenLockContainsCharacters: false
     property bool screenUnlockFailed: false
     property bool screenTranslatorOpen: false
+    property var screenTranslatorRegionInfo: null
     property bool sessionOpen: false
     property bool superDown: false
     property bool superReleaseMightTrigger: true
@@ -57,6 +60,10 @@ Singleton {
             default:         return dashboardPanelOpen;
         }
     }
+
+    // helper properties
+    readonly property bool policiesOnLeft: Config.options.sidebar.position === "default" || Config.options.sidebar.position === "left"
+    readonly property bool dashboardOnLeft: Config.options.sidebar.position === "inverted" || Config.options.sidebar.position === "left"
 
     onPoliciesPanelOpenChanged: {
         if (policiesPanelOpen) {

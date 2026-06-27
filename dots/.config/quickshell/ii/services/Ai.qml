@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 
 import qs.modules.common.functions as CF
 import qs.modules.common
+import qs.services
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -265,7 +266,7 @@ Singleton {
     // - key_get_description: Description of pricing and how to get an API key
     // - api_format: The API format of the model. Can be "openai" or "gemini". Default is "openai".
     // - extraParams: Extra parameters to be passed to the model. This is a JSON object.
-    property var models: Config.options.policies.ai === 2 ? {} : {
+    property var models: {
         "openrouter": aiModelComponent.createObject(this, {
             "name": `OpenRouter - ${currentModel}`,
             "icon": "openrouter-symbolic",
@@ -554,14 +555,6 @@ Singleton {
         modelId = modelId.toLowerCase()
         if (modelList.indexOf(modelId) !== -1) {
             const model = models[modelId]
-            // See if policy prevents online models
-            if (Config.options.policies.ai === 2 && !model.endpoint.includes("localhost")) {
-                root.addMessage(
-                    Translation.tr("Online models disallowed\n\nControlled by `policies.ai` config option"),
-                    root.interfaceRole
-                );
-                return;
-            }
             if (setPersistentState) Persistent.states.ai.model = modelId;
             if (feedback) root.addMessage(Translation.tr("Model set to %1").arg(model.name), root.interfaceRole);
             if (model.requires_key) {

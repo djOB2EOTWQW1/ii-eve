@@ -93,7 +93,7 @@ Singleton {
         running: true
         command: ["bash", "-lc", "which localsend-cli"]
         environment: ({
-            "PATH": "/home/vaguesyntax/.local/bin:/usr/local/bin:/usr/bin:/bin"
+            "PATH": Directories.home + "/.local/bin:/usr/local/bin:/usr/bin:/bin"
         })
         onExited: (exitCode, exitStatus) => {
             root.available = (exitCode === 0)
@@ -136,8 +136,8 @@ Singleton {
             "notify-send",
             Translation.tr("LocalSend: Incoming Transfer"),
             Translation.tr("From: %1\nCheck the clock widget popup on the bar for more information").arg(transfer.sender),
-            "-A", "accept=Kabul Et",
-            "-A", "deny=Reddet",
+            "-A", `accept=${Translation.tr("Accept")}`,
+            "-A", `deny=${Translation.tr("Deny")}`,
             "-a", "LocalSend",
         ]
         notificationProc.running = true
@@ -150,7 +150,7 @@ Singleton {
         stdinEnabled: true
 
         environment: ({
-            "PATH": "/home/vaguesyntax/.local/bin:/usr/local/bin:/usr/bin:/bin"
+            "PATH": Directories.home + "/.local/bin:/usr/local/bin:/usr/bin:/bin"
         })
 
         stdout: SplitParser {
@@ -183,7 +183,7 @@ Singleton {
         running: false
 
         environment: ({
-            "PATH": "/home/vaguesyntax/.local/bin:/usr/local/bin:/usr/bin:/bin"
+            "PATH": Directories.home + "/.local/bin:/usr/local/bin:/usr/bin:/bin"
         })
 
         stdout: SplitParser {

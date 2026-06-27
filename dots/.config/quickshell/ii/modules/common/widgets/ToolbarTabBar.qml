@@ -10,6 +10,7 @@ Item {
     id: root
     property alias currentIndex: tabBar.currentIndex
     required property var tabButtonList
+    property int maxTextTabs: 99
 
     function incrementCurrentIndex() {
         tabBar.incrementCurrentIndex();
@@ -29,6 +30,7 @@ Item {
         required property int index
         required property var modelData
         current: index == root.currentIndex
+        showLabel: root.tabButtonList.length <= root.maxTextTabs || current
         text: modelData.name
         materialSymbol: modelData.icon
         onClicked: {

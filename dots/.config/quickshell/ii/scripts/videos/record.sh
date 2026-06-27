@@ -1,25 +1,22 @@
 #!/usr/bin/env bash
 
-# echo "SCRIPT STARTED $(date)" >> /tmp/region-record.log
-
 CONFIG_FILE="$HOME/.config/illogical-impulse/config.json"
-JSON_PATH=".screenRecord.savePath"
-
 STATE_FILE="$HOME/.local/state/quickshell/states.json"
 STATE_JSON_PATH=".screenRecord.active"
 
-CUSTOM_PATH=$(jq -r "$JSON_PATH" "$CONFIG_FILE" 2>/dev/null)
+cfg() { jq -r "$1 // empty" "$CONFIG_FILE" 2>/dev/null; }
 
-RECORDING_DIR=""
+CUSTOM_PATH="$(cfg '.screenRecord.savePath')"
+ENCODER="$(cfg '.screenRecord.encoder')";       ENCODER="${ENCODER:-auto}"
+DEVICE_CFG="$(cfg '.screenRecord.device')"
+FRAMERATE="$(cfg '.screenRecord.framerate')";   FRAMERATE="${FRAMERATE:-60}"
+QUALITY="$(cfg '.screenRecord.quality')";        QUALITY="${QUALITY:-24}"
+AUDIO_CODEC="$(cfg '.screenRecord.audioCodec')"
+
+RECORDING_DIR="${CUSTOM_PATH:-$HOME/Videos}"
 
 TIMER_PID=""
 SECONDS_ELAPSED=-1
-
-if [[ -n "$CUSTOM_PATH" ]]; then
-    RECORDING_DIR="$CUSTOM_PATH"
-else
-    RECORDING_DIR="$HOME/Videos" # Use default path
-fi
 
 start_timer() {
     if [[ -n "$TIMER_PID" ]]; then
@@ -40,20 +37,18 @@ stop_timer() {
         kill "$TIMER_PID" 2>/dev/null
         wait "$TIMER_PID" 2>/dev/null
         TIMER_PID=""
-        jq ".screenRecord.seconds = 0" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE" # setting it to 0 after killing the timer
+        jq ".screenRecord.seconds = 0" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
     fi
 }
 
-
 trap stop_timer EXIT
-
 
 getdate() {
     date '+%Y-%m-%d_%H.%M.%S'
 }
 
 getaudiooutput() {
-    pactl list sources | grep 'Name' | grep 'monitor' | cut -d ' ' -f2
+    pactl list sources | grep 'Name' | grep 'monitor' | cut -d ' ' -f2 | head -n1
 }
 getactivemonitor() {
     hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name'
@@ -69,11 +64,72 @@ updatestate() {
     fi
 }
 
+_enc_fail() {
+    notify-send "Recording cancelled" "$1" -a 'Recorder' & disown
+    updatestate false
+    exit 1
+}
+
+probe_vaapi_node() {
+    local node="$1"
+    [[ -e "$node" ]] || return 1
+    ffmpeg -loglevel error -vaapi_device "$node" \
+        -f lavfi -i color=black:s=256x256:d=0.1 \
+        -vf 'format=nv12,hwupload' -c:v h264_vaapi -f null - </dev/null >/dev/null 2>&1
+}
+
+probe_nvenc() {
+    ffmpeg -loglevel error \
+        -f lavfi -i color=black:s=256x256:d=0.1 \
+        -c:v h264_nvenc -f null - </dev/null >/dev/null 2>&1
+}
+
+detect_vaapi_node() {
+    if [[ -n "$DEVICE_CFG" ]]; then
+        probe_vaapi_node "$DEVICE_CFG" && { echo "$DEVICE_CFG"; return 0; }
+        return 1
+    fi
+    local node
+    for node in /dev/dri/renderD12*; do
+        probe_vaapi_node "$node" && { echo "$node"; return 0; }
+    done
+    return 1
+}
+
+# Sets global array ENC_ARGS based on $ENCODER (auto|hardware|software|vaapi|nvenc).
+# auto: VAAPI -> NVENC -> software. hardware: VAAPI -> NVENC -> abort.
+resolve_encoder_args() {
+    local node=""
+    case "$ENCODER" in
+        software)
+            ENC_ARGS=(--pixel-format yuv420p -p "crf=$QUALITY")
+            ;;
+        vaapi)
+            node="$(detect_vaapi_node)" || _enc_fail "No working VAAPI device"
+            ENC_ARGS=(-c h264_vaapi -d "$node" -p "qp=$QUALITY")
+            ;;
+        nvenc)
+            probe_nvenc || _enc_fail "NVENC not available"
+            ENC_ARGS=(-c h264_nvenc -p "qp=$QUALITY")
+            ;;
+        hardware|*)
+            if node="$(detect_vaapi_node)"; then
+                ENC_ARGS=(-c h264_vaapi -d "$node" -p "qp=$QUALITY")
+            elif probe_nvenc; then
+                ENC_ARGS=(-c h264_nvenc -p "qp=$QUALITY")
+            elif [[ "$ENCODER" == "hardware" ]]; then
+                _enc_fail "No working hardware encoder (VAAPI/NVENC)"
+            else
+                ENC_ARGS=(--pixel-format yuv420p -p "crf=$QUALITY")
+            fi
+            ;;
+    esac
+}
 
 mkdir -p "$RECORDING_DIR"
 cd "$RECORDING_DIR" || exit
 
-# parse --region <value> without modifying $@ so other flags like --fullscreen still work
+# parse flags without consuming $@ ordering
 ARGS=("$@")
 MANUAL_REGION=""
 SOUND_FLAG=0
@@ -94,21 +150,15 @@ for ((i=0;i<${#ARGS[@]};i++)); do
     fi
 done
 
-if pgrep wf-recorder > /dev/null; then
+if pgrep -x wf-recorder > /dev/null; then
     notify-send "Recording Stopped" "Stopped" -a 'Recorder' &
     updatestate false
-    pkill wf-recorder &
+    pkill -INT -x wf-recorder
 else
-    if [[ $FULLSCREEN_FLAG -eq 1 ]]; then
-        notify-send "Starting recording" 'recording_'"$(getdate)"'.mp4' -a 'Recorder' & disown
-        updatestate true
-        if [[ $SOUND_FLAG -eq 1 ]]; then
-            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4' --audio="$(getaudiooutput)"
-        else
-            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4'
-        fi
-    else
-        # If a manual region was provided via --region, use it; otherwise run slurp as before.
+    FILENAME="recording_$(getdate).mp4"
+
+    GEO_ARGS=()
+    if [[ $FULLSCREEN_FLAG -ne 1 ]]; then
         if [[ -n "$MANUAL_REGION" ]]; then
             region="$MANUAL_REGION"
         else
@@ -118,22 +168,30 @@ else
                 exit 1
             fi
         fi
-
         pos="${region%% *}"      # x,y
         size="${region##* }"     # WxH
         x="${pos%,*}"
         y="${pos#*,}"
-        geometry="${x},${y} ${size}"
-
-        notify-send "Starting recording" 'recording_'"$(getdate)"'.mp4' -a 'Recorder' & disown
-        updatestate true
-        if [[ $SOUND_FLAG -eq 1 ]]; then
-            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4'  --geometry "$geometry" --audio="$(getaudiooutput)"
-        else
-            # echo "SCRIPT DEBUG: wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4'  --geometry "$geometry"" >> /tmp/region-record.log
-            wf-recorder -o "$(getactivemonitor)" --pixel-format yuv420p -f './recording_'"$(getdate)"'.mp4'  --geometry "$geometry"
-        fi
+        GEO_ARGS=(--geometry "${x},${y} ${size}")
     fi
-fi
 
-# echo "SCRIPT EXIT $(date)" >> /tmp/region-record.log
+    RATE_ARGS=()
+    if [[ "$FRAMERATE" =~ ^[0-9]+$ ]] && (( FRAMERATE > 0 )); then
+        RATE_ARGS=(-r "$FRAMERATE")
+    fi
+
+    AUDIO_ARGS=()
+    if [[ $SOUND_FLAG -eq 1 ]]; then
+        AUDIO_ARGS=(--audio="$(getaudiooutput)")
+        [[ -n "$AUDIO_CODEC" ]] && AUDIO_ARGS+=(-C "$AUDIO_CODEC")
+    fi
+
+    resolve_encoder_args
+
+    notify-send "Starting recording" "$FILENAME" -a 'Recorder' & disown
+    updatestate true
+
+    cmd=(wf-recorder -o "$(getactivemonitor)" -f "./$FILENAME"
+         "${ENC_ARGS[@]}" "${RATE_ARGS[@]}" "${GEO_ARGS[@]}" "${AUDIO_ARGS[@]}")
+    "${cmd[@]}"
+fi

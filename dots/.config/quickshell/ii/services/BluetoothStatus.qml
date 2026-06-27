@@ -15,6 +15,41 @@ Singleton {
     readonly property int activeDeviceCount: Bluetooth.defaultAdapter?.devices.values.filter(device => device.connected).length ?? 0
     readonly property bool connected: Bluetooth.devices.values.some(d => d.connected)
 
+    // === Connection tracking ===
+    signal deviceConnected(BluetoothDevice device)
+    signal deviceDisconnected(BluetoothDevice device)
+
+    // BlueZ rejects Powered=true while rfkill soft-blocks the adapter
+    // ("off-blocked" state). System bluetooth applets / Fn-keys leave us
+    // in that state, so unblock first and flip Powered on rfkill's exit.
+    Process {
+        id: rfkillUnblockProc
+        command: ["rfkill", "unblock", "bluetooth"]
+        onExited: {
+            if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = true
+        }
+    }
+
+    function setEnabled(value) {
+        if (!Bluetooth.defaultAdapter) return
+        if (value) rfkillUnblockProc.running = true
+        else Bluetooth.defaultAdapter.enabled = false
+    }
+
+    Instantiator {
+        model: Bluetooth.devices
+
+        Connections {
+            required property BluetoothDevice modelData
+            target: modelData
+
+            function onConnectedChanged() {
+                if (modelData.connected) root.deviceConnected(modelData)
+                else root.deviceDisconnected(modelData)
+            }
+        }
+    }
+
     function sortFunction(a, b) {
         // Ones with meaningful names before MAC addresses
         const macRegex = /^([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$/;

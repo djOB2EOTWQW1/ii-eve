@@ -84,6 +84,18 @@ ContentPage {
 
         }
 
+        ConfigSwitch {
+            buttonIcon: "edit"
+            text: Translation.tr("Allow editing keybinds from cheatsheet")
+            checked: Config.options.cheatsheet.allowEditing
+            onCheckedChanged: {
+                Config.options.cheatsheet.allowEditing = checked;
+            }
+            StyledToolTip {
+                text: Translation.tr("Show an Edit toggle on the keybinds cheatsheet tab to edit/delete/add keybinds inline")
+            }
+        }
+
         ConfigSpinBox {
             text: Translation.tr("Keybind font size")
             value: Config.options.cheatsheet.fontSize.key
@@ -134,10 +146,10 @@ ContentPage {
         ConfigRow {
             uniform: true
             ConfigSwitch {
-                buttonIcon: "highlight_mouse_cursor"
-                text: Translation.tr("Hover to reveal")
-                checked: Config.options.dock.hoverToReveal
-                onCheckedChanged: { Config.options.dock.hoverToReveal = checked; }
+                buttonIcon: "computer_arrow_up"
+                text: Translation.tr("Reveal on empty workspace")
+                checked: Config.options.dock.revealOnEmptyWorkspace
+                onCheckedChanged: { Config.options.dock.revealOnEmptyWorkspace = checked; }
             }
             ConfigSwitch {
                 buttonIcon: "keep"

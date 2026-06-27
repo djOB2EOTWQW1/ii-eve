@@ -10,24 +10,70 @@ import Quickshell.Io
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
-
 Scope { // Scope
     id: root
-    property var tabButtonList: [
-        {
-            "icon": "calendar_month",
-            "name": Translation.tr("Timetable")
-        },
-        {
-            "icon": "keyboard",
-            "name": Translation.tr("Keybinds")
-        },
-        {
-            "icon": "experiment",
-            "name": Translation.tr("Elements")
-          },
-        
-    ]
+
+    // Load the panel once (on first open) and keep it alive, toggling visibility
+    // instead of destroying it — avoids re-creation rendering bugs with async
+    // extension pages.
+    property bool shown: false
+    onShownChanged: if (root.shown) cheatsheetLoader.active = true
+
+    // cheatsheet contribution point: external extension tabs
+    property var extensionPages: ExtensionManager.ready ? ExtensionManager.getContributionPoint("cheatsheet") : []
+    Connections {
+        target: ExtensionManager
+        function onRefreshExtensions() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheet") }
+        function onExtensionInstalled() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheet") }
+        function onExtensionRemoved() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheet") }
+        function onExtensionToggled() { root.extensionPages = ExtensionManager.getContributionPoint("cheatsheet") }
+    }
+    readonly property var extensionTabs: root.extensionPages.map(p => ({
+        key: "ext:" + p.extensionId + ":" + p.identifier,
+        icon: p.icon || "extension",
+        name: p.title || p.identifier,
+        component: ExtensionManager.loadExtensionQmlComponent(p.fullPath),
+        extensionId: p.extensionId
+    }))
+
+    property int _pageLoadTick: 0
+    Component {
+        id: emptyPlaceholderComponent
+        Item {
+            implicitWidth: 420
+            implicitHeight: 260
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: 10
+                MaterialSymbol {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "extension_off"
+                    iconSize: 56
+                    color: Appearance.colors.colSubtext
+                }
+                StyledText {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: Translation.tr("No cheat sheet pages")
+                    font.pixelSize: Appearance.font.pixelSize.large
+                    color: Appearance.colors.colOnLayer0
+                }
+                StyledText {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.maximumWidth: 360
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                    text: Translation.tr("Enable a cheat sheet extension in Settings → Extensions to add pages here.")
+                    color: Appearance.colors.colSubtext
+                }
+            }
+        }
+    }
+
+    readonly property var visibleTabs: root.extensionTabs.length > 0
+        ? root.extensionTabs
+        : [{ key: "empty", icon: "extension_off", name: Translation.tr("Cheat sheet"), component: emptyPlaceholderComponent }]
+
+    readonly property var tabButtonList: root.visibleTabs.map(t => ({ icon: t.icon, name: t.name }))
 
     Loader {
         id: cheatsheetLoader
@@ -35,7 +81,7 @@ Scope { // Scope
 
         sourceComponent: PanelWindow { // Window
             id: cheatsheetRoot
-            visible: cheatsheetLoader.active
+            visible: root.shown
 
             anchors {
                 top: true
@@ -45,23 +91,52 @@ Scope { // Scope
             }
 
             function hide() {
-                cheatsheetLoader.active = false;
+                root.shown = false;
             }
             exclusiveZone: 0
             implicitWidth: cheatsheetBackground.width + Appearance.sizes.elevationMargin * 2
             implicitHeight: cheatsheetBackground.height + Appearance.sizes.elevationMargin * 2
             WlrLayershell.namespace: "quickshell:cheatsheet"
-            // Setting this value makes it take its sweet time to open
-            // WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+            // OnDemand at map time hangs the surface for ~5s on some compositors.
+            // Map with None first, then upgrade to OnDemand after the panel is visible,
+            // and only on tabs that actually need text input (Commands).
+            property bool _focusReady: false
+            WlrLayershell.keyboardFocus: {
+                if (!_focusReady) return WlrKeyboardFocus.None;
+                const icon = root.tabButtonList[swipeView.currentIndex]?.icon;
+                // Keybinds tab also needs OnDemand so the search field can take text input.
+                return (icon === "terminal" || icon === "keyboard")
+                    ? WlrKeyboardFocus.OnDemand
+                    : WlrKeyboardFocus.None;
+            }
+            Timer {
+                id: focusUpgradeTimer
+                interval: 80
+                repeat: false
+                onTriggered: {
+                    cheatsheetRoot._focusReady = true;
+                    cheatsheetRoot.focusCurrentTab();
+                }
+            }
+            function focusCurrentTab() {
+                const loader = swipeView.itemAt(swipeView.currentIndex);
+                if (loader && loader.item) loader.item.forceActiveFocus();
+            }
+            onVisibleChanged: {
+                if (visible) {
+                    GlobalFocusGrab.addDismissable(cheatsheetRoot);
+                    focusUpgradeTimer.start();
+                } else {
+                    GlobalFocusGrab.removeDismissable(cheatsheetRoot);
+                    _focusReady = false;
+                }
+            }
             color: "transparent"
 
             mask: Region {
                 item: cheatsheetBackground
             }
 
-            Component.onCompleted: {
-                GlobalFocusGrab.addDismissable(cheatsheetRoot);
-            }
             Component.onDestruction: {
                 GlobalFocusGrab.removeDismissable(cheatsheetRoot);
             }
@@ -110,7 +185,7 @@ Scope { // Scope
 
                 RippleButton { // Close button
                     id: closeButton
-                    focus: cheatsheetRoot.visible
+                    focusPolicy: Qt.NoFocus
                     implicitWidth: 40
                     implicitHeight: 40
                     buttonRadius: Appearance.rounding.full
@@ -160,10 +235,28 @@ Scope { // Scope
                         currentIndex: Persistent.states.cheatsheet.tabIndex
                         onCurrentIndexChanged: {
                             Persistent.states.cheatsheet.tabIndex = currentIndex;
+                            if (cheatsheetRoot._focusReady) cheatsheetRoot.focusCurrentTab();
                         }
 
-                        implicitWidth: Math.max.apply(null, contentChildren.map(child => child.implicitWidth || 0))
-                        implicitHeight: Math.max.apply(null, contentChildren.map(child => child.implicitHeight || 0))
+                        Connections {
+                            target: root
+                            function onTabButtonListChanged() {
+                                if (swipeView.currentIndex >= root.tabButtonList.length) {
+                                    swipeView.currentIndex = Math.max(0, root.tabButtonList.length - 1);
+                                }
+                            }
+                        }
+
+                        implicitWidth: {
+                            root._pageLoadTick; // re-evaluate when an (async) extension page loads
+                            const w = Math.max.apply(null, contentChildren.map(child => child.implicitWidth || 0));
+                            return (isFinite(w) && w > 0) ? w : 420;
+                        }
+                        implicitHeight: {
+                            root._pageLoadTick;
+                            const h = Math.max.apply(null, contentChildren.map(child => child.implicitHeight || 0));
+                            return (isFinite(h) && h > 0) ? h : 260;
+                        }
 
                         clip: true
                         layer.enabled: true
@@ -175,10 +268,28 @@ Scope { // Scope
                             }
                         }
 
-                        CheatsheetTimetable {}
-                        CheatsheetKeybinds {}
-                        CheatsheetPeriodicTable {}
-                        
+                        Repeater {
+                            model: root.visibleTabs
+                            delegate: Loader {
+                                required property var modelData
+                                sourceComponent: modelData.component
+                                onLoaded: {
+                                    if (modelData.extensionId && item) {
+                                        if ("extensionId" in item) {
+                                            item.extensionId = modelData.extensionId;
+                                        } else {
+                                            Object.defineProperty(item, "extensionId", {
+                                                value: modelData.extensionId,
+                                                writable: true,
+                                                configurable: true,
+                                                enumerable: true
+                                            });
+                                        }
+                                    }
+                                    root._pageLoadTick++; // force SwipeView implicit-size recompute
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -189,15 +300,15 @@ Scope { // Scope
         target: "cheatsheet"
 
         function toggle(): void {
-            cheatsheetLoader.active = !cheatsheetLoader.active;
+            root.shown = !root.shown;
         }
 
         function close(): void {
-            cheatsheetLoader.active = false;
+            root.shown = false;
         }
 
         function open(): void {
-            cheatsheetLoader.active = true;
+            root.shown = true;
         }
     }
 
@@ -206,7 +317,7 @@ Scope { // Scope
         description: "Toggles cheatsheet on press"
 
         onPressed: {
-            cheatsheetLoader.active = !cheatsheetLoader.active;
+            root.shown = !root.shown;
         }
     }
 
@@ -215,7 +326,7 @@ Scope { // Scope
         description: "Opens cheatsheet on press"
 
         onPressed: {
-            cheatsheetLoader.active = true;
+            root.shown = true;
         }
     }
 
@@ -224,7 +335,7 @@ Scope { // Scope
         description: "Closes cheatsheet on press"
 
         onPressed: {
-            cheatsheetLoader.active = false;
+            root.shown = false;
         }
     }
 }

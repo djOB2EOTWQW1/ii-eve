@@ -191,19 +191,19 @@ Singleton {
         "waifu.im": {
             "name": "waifu.im",
             "url": "https://waifu.im",
-            "api": "https://api.waifu.im/search",
+            "api": "https://api.waifu.im/images",
             "description": Translation.tr("Waifus only | Excellent quality, limited quantity"),
             "mapFunc": (response) => {
-                response = response.images
+                response = response.items
                 return response.map(item => {
                     return {
-                        "id": item.image_id,
+                        "id": item.id,
                         "width": item.width,
                         "height": item.height,
                         "aspect_ratio": item.width / item.height,
                         "tags": item.tags.map(tag => {return tag.name}).join(" "),
-                        "rating": item.is_nsfw ? "e" : "s",
-                        "is_nsfw": item.is_nsfw,
+                        "rating": item.isNsfw ? "e" : "s",
+                        "is_nsfw": item.isNsfw,
                         "md5": item.md5,
                         "preview_url": item.sample_url ?? item.url, // preview_url just says access denied (maybe i fucked up and sent too many requests idk)
                         "sample_url": item.url,
@@ -213,10 +213,9 @@ Singleton {
                     }
                 })
             },
-            "tagSearchTemplate": "https://api.waifu.im/tags",
+            "tagSearchTemplate": "https://api.waifu.im/tags?Name={{query}}",
             "tagMapFunc": (response) => {
-                return [...response.versatile.map(item => {return {"name": item}}), 
-                    ...response.nsfw.map(item => {return {"name": item}})]
+                return response.items.map(item => {return {"name": item.name}})
             }
         },
         "t.alcy.cc": {
@@ -277,7 +276,7 @@ Singleton {
     property var currentProvider: Persistent.states.booru.provider
 
     function getWorkingImageSource(url) {
-        if (url.includes('pximg.net')) {
+        if (url?.includes('pximg.net')) {
             return `https://www.pixiv.net/en/artworks/${url.substring(url.lastIndexOf('/') + 1).replace(/_p\d+\.(png|jpg|jpeg|gif)$/, '')}`;
         }
         return url;
@@ -302,6 +301,19 @@ Singleton {
         responses = [...responses, newResponse]
 
         if (responses.length > maxResponses) {
+            const toRemove = responses.slice(0, responses.length - maxResponses)
+            toRemove.forEach(response => {
+                response.images.forEach(image => {
+                    [image.preview_url, image.sample_url, image.file_url].forEach(url => {
+                        if (!url) return
+                        const cleanUrl = url.split('?')[0]
+                        const fileName = decodeURIComponent(
+                        cleanUrl.substring(cleanUrl.lastIndexOf('/') + 1)
+                        )
+                        Quickshell.execDetached(["rm", "-f", `${Directories.booruPreviews}/${fileName}`])
+                    })
+                })
+            })
             responses = responses.slice(responses.length - maxResponses)
         }
 
@@ -351,10 +363,10 @@ Singleton {
         else if (currentProvider === "waifu.im") {
             var tagsArray = tagString.split(" ");
             tagsArray.forEach(tag => {
-                params.push("included_tags=" + encodeURIComponent(tag));
+                params.push("IncludedTags=" + encodeURIComponent(tag.toLowerCase()));
             });
-            params.push("limit=" + Math.min(limit, 30)) // Only admin can do > 30
-            params.push("is_nsfw=" + (nsfw ? "null" : "false")) // null is random
+            params.push("PageSize=" + Math.min(limit, 30)) // Only admin can do > 30
+            params.push("IsNsfw=" + (nsfw ? "All" : "False")) // null is random
         }
         else if (currentProvider === "t.alcy.cc") {
             url += tagString
@@ -440,15 +452,13 @@ Singleton {
         }
 
         try {
-            // Required for danbooru & kanochan & t.alcy.cc
-            if (currentProvider == "danbooru" || currentProvider == "konachan" || currentProvider == "t.alcy.cc") {
-                if (currentProvider == "danbooru") {
-                    xhr.setRequestHeader("User-Agent", "Quickshell-Booru/1.0");
-                } else if (currentProvider == "konachan") {
-                    xhr.setRequestHeader("User-Agent", defaultUserAgent);
-                } else if (currentProvider == "t.alcy.cc") {
-                    xhr.setRequestHeader("User-Agent", defaultUserAgent);
-                }
+            // danbooru rejects generic browser UAs; needs a descriptive client UA
+            if (currentProvider == "danbooru") {
+                xhr.setRequestHeader("User-Agent", "Quickshell-Booru/1.0")
+            }
+            // Required for konachan and t.alcy.cc
+            else if (["konachan", "t.alcy.cc"].includes(currentProvider)) {
+                xhr.setRequestHeader("User-Agent", defaultUserAgent)
             }
             else if (currentProvider == "zerochan") {
                 const userAgent = Config.options?.sidebar?.booru?.zerochan?.username ? `Desktop sidebar booru viewer - username: ${Config.options.sidebar.booru.zerochan.username}` : defaultUserAgent
@@ -502,8 +512,12 @@ Singleton {
         }
 
         try {
-            // Required for danbooru
+            // danbooru rejects generic browser UAs; needs a descriptive client UA
             if (currentProvider == "danbooru") {
+                xhr.setRequestHeader("User-Agent", "Quickshell-Booru/1.0")
+            }
+            // Required for konachan
+            else if (currentProvider == "konachan") {
                 xhr.setRequestHeader("User-Agent", defaultUserAgent)
             }
             xhr.send()

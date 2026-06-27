@@ -1,11 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import qs.modules.common
 import qs.modules.common.functions
 import qs.modules.common.utils
 import qs.services
 import ".."
 
-GCloudApi {
+TranslatorApi {
     id: root
 
     property list<string> pendingStrings
@@ -16,15 +17,15 @@ GCloudApi {
         GoogleCloud.load();
         root.setupReady = false;
         root.pendingStrings = strings;
-        root.state = GCloudApi.State.Preparing;
+        root.state = TranslatorApi.State.Preparing;
         root.setupReady = true;
     }
 
     onPreparationReadyChanged: {
         if (!preparationReady) return;
-        root.state = GCloudApi.State.Processing;
+        root.state = TranslatorApi.State.Processing;
 
-        const targetLang = Translation.languageCode;
+        const targetLang = Config.options.screenTranslator.targetLanguage || Translation.languageCode;
         const payload = {
             "targetLanguageCode": targetLang,
             "contents": root.pendingStrings,

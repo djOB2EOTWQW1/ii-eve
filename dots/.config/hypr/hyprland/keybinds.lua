@@ -27,7 +27,7 @@ hl.bind("SUPER + V", hl.dsp.global("quickshell:overviewClipboardToggle"), { desc
 hl.bind("SUPER + Period", hl.dsp.global("quickshell:overviewEmojiToggle"), { description = "Shell: Emoji >> clipboard" })
 hl.bind("SUPER + ALT + A", hl.dsp.global("quickshell:sidebarLeftToggleDetach"))
 hl.bind("SUPER + S", hl.dsp.global("quickshell:sidebarLeftToggle"))
-hl.bind("SUPER + N", hl.dsp.global("quickshell:sidebarRightToggle"), { description = "Shell: Toggle right sidebar" })
+hl.bind("SUPER + A", hl.dsp.global("quickshell:sidebarRightToggle"), { description = "Shell: Toggle right sidebar" })
 hl.bind("SUPER + Slash", hl.dsp.global("quickshell:cheatsheetToggle"), { description = "Shell: Toggle cheatsheet" })
 hl.bind("SUPER + Space", hl.dsp.global("quickshell:appLauncherToggle"), { description = "Shell: Toggle app launcher" })
 hl.bind("SUPER + G", hl.dsp.global("quickshell:overlayToggle"), { description = "Shell: Toggle overlay" })
@@ -61,6 +61,7 @@ hl.bind("SUPER + SHIFT + A", hl.dsp.global("quickshell:regionSearch"), { descrip
 hl.bind("SUPER + SHIFT + A", hl.dsp.exec_cmd(qsIsAlive .. " || pidof slurp || " .. hyprScripts .. "/snip_to_search.sh"))
 hl.bind("SUPER + SHIFT + X", hl.dsp.global("quickshell:regionOcr"), { description = "Utilities: OCR >> clipboard" })
 hl.bind("SUPER + SHIFT + T", hl.dsp.global("quickshell:screenTranslate"), { description = "Utilities: Translate screen" })
+hl.bind("SUPER + SHIFT + CTRL + T", hl.dsp.global("quickshell:regionTranslate"), { description = "Utilities: Translate selected region" })
 hl.bind("SUPER + SHIFT + X", hl.dsp.exec_cmd(qsIsAlive .. " || pidof slurp || grim -g \"$(slurp $SLURP_ARGS)\" \"/tmp/ocr_image.png\" && tesseract \"/tmp/ocr_image.png\" stdout -l $(tesseract --list-langs | awk 'NR>1{print $1}' | tr '\\\\n' '+' | sed 's/\\\\+$/\\\\n/') | wl-copy && rm \"/tmp/ocr_image.png\""))
 hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"), { description = "Utilities: Pick color (Hex) >> clipboard" })
 hl.bind("SUPER + SHIFT + R", hl.dsp.global("quickshell:regionRecord"), { locked = true, description = "Utilities: Record region (no sound)" })
@@ -130,16 +131,19 @@ hl.bind("SUPER + L", hl.dsp.exec_cmd("loginctl lock-session"), { description = "
 hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd("systemctl suspend || loginctl suspend"), { locked = true, description = "Session: Sleep" })
 
 --##! Media
-local mediaNext = "playerctl next || playerctl position `bc <<< \"100 * $(playerctl metadata mpris:length) / 1000000 / 100\"`"
+-- Route through the shell's MPRIS IPC so keys act on the bar's active player.
+local mediaPlayPause = "qs -c ii ipc call mpris playPause || playerctl play-pause"
+local mediaNext = "qs -c ii ipc call mpris next || playerctl next"
+local mediaPrev = "qs -c ii ipc call mpris previous || playerctl previous"
 hl.bind("SUPER + SHIFT + W", hl.dsp.exec_cmd(mediaNext), { locked = true, description = "Media: Next track" })
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd(mediaNext), { locked = true })
-hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
-hl.bind("SUPER + SHIFT + ALT + mouse:275", hl.dsp.exec_cmd("playerctl previous"))
+hl.bind("XF86AudioPrev", hl.dsp.exec_cmd(mediaPrev), { locked = true })
+hl.bind("SUPER + SHIFT + ALT + mouse:275", hl.dsp.exec_cmd(mediaPrev))
 hl.bind("SUPER + SHIFT + ALT + mouse:276", hl.dsp.exec_cmd(mediaNext))
-hl.bind("SUPER + SHIFT + Q", hl.dsp.exec_cmd("playerctl previous"), { locked = true, description = "Media: Previous track" })
-hl.bind("SUPER + SHIFT + E", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, description = "Media: Play/pause" })
-hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("SUPER + SHIFT + Q", hl.dsp.exec_cmd(mediaPrev), { locked = true, description = "Media: Previous track" })
+hl.bind("SUPER + SHIFT + E", hl.dsp.exec_cmd(mediaPlayPause), { locked = true, description = "Media: Play/pause" })
+hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(mediaPlayPause), { locked = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd(mediaPlayPause), { locked = true })
 
 --##! Apps
 hl.bind("SUPER + Return", hl.dsp.exec_cmd(hyprScripts .. "/launch_first_available.sh \"${TERMINAL}\" \"kitty -1\" \"foot\" \"alacritty\" \"wezterm\" \"konsole\" \"kgx\" \"uxterm\" \"xterm\""), { description = "App: Terminal" })

@@ -10,15 +10,33 @@ Process {
     signal done(string path, int width, int height);
     required property string filePath;
     required property string sourceUrl;
+    property string referer: ""
     property string downloadUserAgent: Config.options?.networking.userAgent ?? ""
     
     function processFilePath() {
         return StringUtils.shellSingleQuoteEscape(FileUtils.trimFileProtocol(filePath));
     }
 
+    function processSourceUrl() {
+        return StringUtils.shellSingleQuoteEscape(sourceUrl);
+    }
+
+    function curlUserAgentArg() {
+        if (!downloadUserAgent) {
+            return "";
+        }
+        return ` -H 'User-Agent: ${StringUtils.shellSingleQuoteEscape(downloadUserAgent)}'`;
+    }
+
+    function curlRefererArg() {
+        if (!referer) {
+            return "";
+        }
+        return ` -H 'Referer: ${StringUtils.shellSingleQuoteEscape(referer)}'`;
+    }
     running: true
-    command: ["bash", "-c", 
-        `mkdir -p $(dirname '${processFilePath()}'); [ -f '${processFilePath()}' ] || curl -sSL '${sourceUrl}' -o '${processFilePath()}' && file '${processFilePath()}'`
+    command: ["bash", "-c",
+    `mkdir -p $(dirname '${processFilePath()}'); [ -f '${processFilePath()}' ] || curl -sSL '${processSourceUrl()}'${curlUserAgentArg()}${curlRefererArg()} -o '${processFilePath()}' && file '${processFilePath()}'`
     ]
     stdout: StdioCollector {
         id: imageSizeOutputCollector

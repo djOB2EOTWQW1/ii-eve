@@ -46,6 +46,7 @@ Singleton {
     property string shellConfigPath: `${Directories.shellConfig}/${Directories.shellConfigName}`
 	property string customAppsPath: FileUtils.trimFileProtocol(`${Directories.state}/user/customApps.json`)
 	property string todoPath: FileUtils.trimFileProtocol(`${Directories.state}/user/todo.json`)
+	property string commandsPath: FileUtils.trimFileProtocol(`${Directories.state}/user/commands.json`)
 	property string notesPath: FileUtils.trimFileProtocol(`${Directories.state}/user/notes.json`)
 	property string conflictCachePath: FileUtils.trimFileProtocol(`${Directories.cache}/conflict-killer`)
     property string notificationsPath: FileUtils.trimFileProtocol(`${Directories.cache}/notifications/notifications.json`)
@@ -72,6 +73,13 @@ Singleton {
     property string screenshareStatePath: FileUtils.trimFileProtocol(`${Directories.state}/user/generated/screenshare/apps.txt`)
     property string geniusLyricsScriptPath: FileUtils.trimFileProtocol(`${Directories.scriptPath}/lyrics/genius-lyrics.js`)
     property string localSendDownloadPath: FileUtils.trimFileProtocol(`${Directories.home}/Downloads/localsend`)
+
+    // Extension system paths
+    property string extensionsPath: FileUtils.trimFileProtocol(`${Directories.shellConfig}/extensions`)
+    property string extensionsCachePath: `${Directories.extensionsPath}/cache`
+    property string extensionsInstalledPath: `${Directories.extensionsPath}/installed`
+    property string pluginsJsonPath: `${Directories.extensionsPath}/plugins.json`
+
     // Cleanup on init
     Component.onCompleted: {
         Quickshell.execDetached(["mkdir", "-p", `${shellConfig}`])
@@ -83,6 +91,8 @@ Singleton {
         Quickshell.execDetached(["mkdir", "-p", `${aiChats}`])
         Quickshell.execDetached(["mkdir", "-p", `${FileUtils.trimFileProtocol(Directories.state)}/user`])
         Quickshell.execDetached(["mkdir", "-p", `${userActions}`])
+        Quickshell.execDetached(["mkdir", "-p", `${Directories.extensionsCachePath}`])
+        Quickshell.execDetached(["mkdir", "-p", `${Directories.extensionsInstalledPath}`])
         Quickshell.execDetached(["rm", "-rf", `${tempImages}`])
     }
 }

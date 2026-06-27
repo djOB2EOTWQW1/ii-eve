@@ -22,16 +22,18 @@ Rectangle {
     property int barSection // 0: left, 1: center, 2: right
     property var listModel
     property int selectedCompIndex
+    property bool vertical: false
 
     property bool dragging: false
 
     // Compute available components from registry based on what's already used
     readonly property var usedIds: {
         let ids = []
+        let layouts = vertical ? Config.options.bar.verticalLayouts : Config.options.bar.layouts
         let allLists = [
-            Config.options.bar.layouts.left,
-            Config.options.bar.layouts.center,
-            Config.options.bar.layouts.right
+            layouts.left,
+            layouts.center,
+            layouts.right
         ]
         for (let list of allLists) {
             for (let item of list) {

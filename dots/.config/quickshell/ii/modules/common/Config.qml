@@ -83,9 +83,12 @@ Singleton {
 
             property JsonObject policies: JsonObject {
                 property int ai: 1 // 0: No | 1: Yes | 2: Local
-                property int weeb: 0 // 0: No | 1: Open | 2: Closet
                 property int wallpapers: 1 // 0: No | 1: Yes
                 property int translator: 0 // 0: No | 1: Yes
+            }
+
+            property JsonObject extensions: JsonObject {
+                property bool enable: true
             }
 
             property JsonObject localsend: JsonObject {
@@ -187,6 +190,21 @@ Singleton {
                 property string terminal: "kitty -1" // This is only for shell actions
                 property string update: "kitty -1 --hold=yes fish -i -c 'pkexec pacman -Syu'"
                 property string volumeMixer: `~/.config/hypr/hyprland/scripts/launch_first_available.sh "pavucontrol-qt" "pavucontrol"`
+
+                property list<var> bluetoothDeviceImages: [
+                    {
+                        "mac": "E8:EE:CC:96:31:3A",
+                        "image": "anker_q30_.png"
+                    },
+                    {
+                        "mac": "40:35:E6:31:8B:AC",
+                        "image": "galaxy_buds_3.png"
+                    },
+                    {
+                        "mac": "64:1B:2F:9B:95:CE",
+                        "image": "samsung_s23.png"
+                    }
+                ]
             }
 
             property JsonObject background: JsonObject {
@@ -265,6 +283,8 @@ Singleton {
                     }
                 }
                 property bool animateWallpaperChanges: true
+                property string transitionType: "radial"
+                property int wipeAngle: 0
                 property string wallpaperPath: ""
                 property string thumbnailPath: ""
                 property bool hideWhenFullscreen: true
@@ -286,6 +306,9 @@ Singleton {
                     property JsonObject backgroundAnimation: JsonObject {
                         property bool enable: true
                         property int speedScale: 10 // 1: very slow, 10: default, 20: 2x speed etc.
+                    }
+                    property JsonObject lyrics: JsonObject {
+                        property bool enable: true
                     }
                     property JsonObject syllable: JsonObject {
                         property int textHighlightStyle: 0 // 0: vertical, 1: horizontal (not perfect bc its not synced in a word level, but a cool animation to have)
@@ -314,8 +337,28 @@ Singleton {
                 property int barGroupStyle: 0 // 0: Pills | 1: Island (opaque) | 2: Transparent (or maybe line-separated in the future)
                 property string topLeftIcon: "spark" // Options: "distro" or any icon name in ~/.config/quickshell/ii/assets/icons
                 property int barBackgroundStyle: 1 // 0: Transparent | 1: Visible | 2: Adaptive
+                property bool expressiveColors: false
+                property string expressiveColorTheme: "content"
                 property bool verbose: true
                 property bool vertical: false
+
+                property JsonObject styles: JsonObject {
+                    property string clock: "default" // default, expressive
+                    property string media: "default"
+                    property string notification: "default"
+                    property string utilButtons: "default"
+                    property string workspaces: "default"
+                    property string weather: "default"
+                    property string dashboard: "default"
+                    property string resources: "default"
+                    property string policies: "default"
+                    property string power: "default"
+                    property string battery: "default"
+                    property string systray: "default"
+                    property string bluetooth: "default"
+                    property string keyboard: "default"
+                    property string sports: "default"
+                }
 
                 property JsonObject mediaPlayer: JsonObject {
                     property bool useFixedSize: false
@@ -336,6 +379,7 @@ Singleton {
                     property int memoryWarningThreshold: 95
                     property int swapWarningThreshold: 85
                     property int cpuWarningThreshold: 90
+                    property bool expressivePopup: false
                 }
                 property list<string> screenList: [] // List of names, like "eDP-1", find out with 'hyprctl monitors' command
 
@@ -419,6 +463,57 @@ Singleton {
                             id: "clock"
                         },
                         {
+                            id: "bluetooth_devices"
+                        },
+                        {
+                            id: "keyboard_layout"
+                        },
+                        {
+                            id: "system_tray"
+                        },
+                        {
+                            id: "dashboard_panel_button"
+                        }
+                    ]
+                }
+                // Separate layout used only by the vertical bar (left/center/right
+                // map to top/middle/bottom). Curated to avoid wide components that
+                // overflow vertically.
+                property JsonObject verticalLayouts: JsonObject {
+                    property list<var> left: [
+                        {
+                            id: "policies_panel_button"
+                        }
+                    ]
+                    property list<var> center: [
+                        {
+                            id: "music_player"
+                        },
+                        {
+                            id: "workspaces",
+                            centered: true
+                        },
+                        {
+                            id: "system_monitor"
+                        }
+                    ]
+                    property list<var> right: [
+                        {
+                            id: "record_indicator"
+                        },
+                        {
+                            id: "screen_share_indicator"
+                        },
+                        {
+                            id: "keyboard_layout"
+                        },
+                        {
+                            id: "clock"
+                        },
+                        {
+                            id: "battery"
+                        },
+                        {
                             id: "system_tray"
                         },
                         {
@@ -429,11 +524,19 @@ Singleton {
                 property JsonObject tooltips: JsonObject {
                     property bool clickToShow: false
                     property bool compactPopups: false
-                    property bool showSwap: false
+                    property bool enableBluetoothConnectionPopup: true
                 }
                 property JsonObject sizes: JsonObject {
                     property int height: 40 // horizontal mode
                     property int width: 46 // vertical mode
+                }
+
+                property JsonObject networkSpeed: JsonObject {
+                    property int displayMode: 0 // 0: total, 1: download, 2: upload, 3: both, 4: icon
+                    property bool showIcons: true
+                    property int iconPosition: 0 // 0: Left, 1: Right
+                    property int updateInterval: 1000 // ms
+                    property bool autoHide: true
                 }
             }
 
@@ -459,6 +562,8 @@ Singleton {
                 property bool splitButtons: false
                 property bool useMouseSymbol: false
                 property bool useFnSymbol: false
+                property bool allowEditing: true
+                property string categoryOrder: ""
                 property JsonObject fontSize: JsonObject {
                     property int key: Appearance.font.pixelSize.smaller
                     property int comment: Appearance.font.pixelSize.smaller
@@ -484,7 +589,7 @@ Singleton {
                 property real hoverRegionHeight: 2
                 property bool pinnedOnStartup: false
                 property bool enablePreview: true
-                property bool hoverToReveal: true
+                property bool revealOnEmptyWorkspace: true
                 property bool enableMediaWidget: false
                 property string position: "bottom"
                 property list<string> pinnedApps: ["org.kde.dolphin", "kitty",]
@@ -565,7 +670,7 @@ Singleton {
 
             property JsonObject notifications: JsonObject {
                 property int timeout: 7000
-                property JsonObject monitor: JsonObject {
+                property JsonObject forceMonitor: JsonObject {
                     property bool enable: false
                     property string name: "" // Name of the monitor to show notifications on, like "eDP-1". Find out with 'hyprctl monitors' command
                 }
@@ -661,6 +766,7 @@ Singleton {
                 property bool invertPinnedItems: true // Makes the below a whitelist for the tray and blacklist for the pinned area
                 property list<var> pinnedItems: ["Fcitx"]
                 property bool filterPassive: true
+                property bool hidePinButton: false
             }
 
             property JsonObject update: JsonObject {
@@ -712,7 +818,10 @@ Singleton {
                     property bool allowNsfw: false
                     property string defaultProvider: "yandere"
                     property int limit: 20
+                    property string player: "mpv" // Options: mpv, native
+                    property string previewQuality: "preview" // Options: preview, sample, full
                     property real rowTooShortThreshold: 250
+                    property list<string> popularTags: ["scenery", "1girl", "landscape", "cat", "wallpaper"]
                     property JsonObject zerochan: JsonObject {
                         property string username: "[unset]"
                     }
@@ -773,10 +882,24 @@ Singleton {
 
             property JsonObject screenRecord: JsonObject {
                 property string savePath: Directories.videos.replace("file://", "") // strip "file://"
+                property string encoder: "auto" // "auto" | "hardware" | "software"
+                property string device: "" // VAAPI render node override; empty = auto-pick
+                property int framerate: 60 // 0 = native monitor rate
+                property int quality: 24 // qp (vaapi) / crf (x264); lower = better
+                property string audioCodec: "" // empty = wf-recorder default
             }
 
             property JsonObject screenSnip: JsonObject {
                 property string savePath: "" // only copy to clipboard when empty
+            }
+
+            property JsonObject screenTranslator: JsonObject {
+                property string provider: "google" // "google" | "local"
+                property string targetLanguage: "" // empty = fallback to language.ui
+                property JsonObject local: JsonObject {
+                    property string tesseractDataDir: "" // empty = ~/.local/share/tessdata
+                    property string tesseractModel: "fast" // "fast" | "best"
+                }
             }
 
             property JsonObject sounds: JsonObject {
@@ -812,6 +935,7 @@ Singleton {
 
             property JsonObject wallpaperSelector: JsonObject {
                 property bool useSystemFileDialog: false
+                property bool animeWallpapers: false // Homework folder + Konachan random-wallpaper button
                 property list<var> directories: [
                     {
                         "icon": "wallpaper",
@@ -839,16 +963,6 @@ Singleton {
                     property list<string> networkNameKeywords: ["airport", "cafe", "college", "company", "eduroam", "free", "guest", "public", "school", "university"]
                     property list<string> fileKeywords: ["anime", "booru", "ecchi", "hentai", "yande.re", "konachan", "breast", "nipples", "pussy", "nsfw", "spoiler", "girl"]
                     property list<string> linkKeywords: ["hentai", "porn", "sukebei", "hitomi.la", "rule34", "gelbooru", "fanbox", "dlsite"]
-                }
-            }
-
-            property JsonObject wallpapers: JsonObject {
-                property string service: "wallhaven" // "unsplash" or "wallhaven"
-                property string sort: "favourites"
-                property bool showAnimeResults: false // only for wallhaven service
-                property JsonObject paths: JsonObject {
-                    property string download: FileUtils.trimFileProtocol(`${Directories.home}/Pictures/Wallpapers`)
-                    property string nsfw: FileUtils.trimFileProtocol(`${Directories.home}/Pictures/Wallpapers/NSFW`)
                 }
             }
 

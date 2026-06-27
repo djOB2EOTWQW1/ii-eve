@@ -62,6 +62,13 @@ Singleton {
                 property int iconSize: 64
                 property string windowSize: "settings"
 
+                // Launch stats keyed by absolute path, serialized as JSON
+                // (JsonAdapter can't serialize a `var` JS object).
+                // Shape: { "/abs/path": { count: N, last: <ms epoch> } }
+                property string launchStatsJson: "{}"
+                // Recent/Frequent strip toggle: "recent" | "frequent".
+                property string recentsMode: "recent"
+
                 property JsonObject launchParams: JsonObject {
                     // Default parameters: fixed toggles + free-form extra prefix.
                     property bool defaultsMangohud: false
