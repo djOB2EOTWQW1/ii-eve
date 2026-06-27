@@ -119,11 +119,13 @@ Item { // MediaMode instance
                         showLoadingIndicator: !root.downloaded
                     }
 
-                    Item {
+                    Loader {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        active: Config.options.background.mediaMode.lyrics.enable
+                        visible: active
 
-                        Item {
+                        sourceComponent: Item {
                             id: lyricsItem
                             anchors.fill: parent
                             anchors.leftMargin: -120
@@ -148,7 +150,7 @@ Item { // MediaMode instance
                                     player: root.player
                                 }
                             }
-                            
+
                             FadeLoader {
                                 shown: lyricsItem.hasSyncedLines
                                 anchors.fill: parent

@@ -274,8 +274,21 @@ ContentPage {
         }
 
 
+        ConfigSwitch {
+            buttonIcon: "lyrics"
+            text: Translation.tr("Show lyrics")
+            checked: Config.options.background.mediaMode.lyrics.enable
+            onCheckedChanged: {
+                Config.options.background.mediaMode.lyrics.enable = checked;
+            }
+            StyledToolTip {
+                text: Translation.tr("Independent of the bar's lyrics toggle")
+            }
+        }
+
         ContentSubsection {
             title: Translation.tr("Text highlight style")
+            enabled: Config.options.background.mediaMode.lyrics.enable
             ConfigSelectionArray {
                 currentValue: Config.options.background.mediaMode.syllable.textHighlightStyle
                 onSelected: newValue => {
