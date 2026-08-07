@@ -13,10 +13,8 @@ Item {
     property alias from: spinBoxWidget.from
     property alias to: spinBoxWidget.to
     
-    Layout.leftMargin: 8
-    Layout.rightMargin: 8
     Layout.fillWidth: true
-    implicitHeight: rowLayout.implicitHeight
+    implicitHeight: rowLayout.implicitHeight + 16
 
     HighlightOverlay {
         id: highlightOverlay
@@ -31,16 +29,35 @@ Item {
         searchString: root.text
     }
 
+    Rectangle {
+        anchors.fill: parent
+        radius: Appearance.rounding.small
+        color: mouseArea.containsMouse ? Appearance.colors.colLayer1Hover : "transparent"
+        Behavior on color {
+            ColorAnimation { duration: 150 }
+        }
+    }
+
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton
+    }
+
     RowLayout {
         id: rowLayout
         anchors.fill: parent
-        spacing: 0
+        anchors.leftMargin: 12
+        anchors.rightMargin: 12
+        spacing: 10
 
         RowLayout {
             spacing: 10
             OptionalMaterialSymbol {
                 icon: root.icon
                 opacity: root.enabled ? 1 : 0.4
+                iconSize: Appearance.font.pixelSize.larger
             }
             StyledText {
                 id: labelWidget

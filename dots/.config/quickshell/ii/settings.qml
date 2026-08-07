@@ -63,6 +63,11 @@ ApplicationWindow {
             component: "modules/settings/ServicesConfig.qml"
         },
         {
+            name: Translation.tr("Hyprland"),
+            icon: "monitor",
+            component: "modules/settings/HyprlandConfig.qml"
+        },
+        {
             name: Translation.tr("Extensions"),
             icon: "extension",
             component: "modules/settings/ExtensionsConfig.qml"
@@ -71,11 +76,6 @@ ApplicationWindow {
             name: Translation.tr("Advanced"),
             icon: "construction",
             component: "modules/settings/AdvancedConfig.qml"
-        },
-        {
-            name: Translation.tr("About"),
-            icon: "info",
-            component: "modules/settings/About.qml"
         }
     ]
     
@@ -127,17 +127,41 @@ ApplicationWindow {
             Layout.alignment: Qt.AlignCenter
             Layout.fillWidth: true
             Layout.fillHeight: false
+            spacing: 12
 
+            MaterialShape {
+                implicitWidth: 36
+                implicitHeight: 36
+                shape: MaterialShape.Shape.Superellipse
+                color: Appearance.colors.colPrimaryContainer
 
-            StyledText {
-                id: titleText
-                color: Appearance.colors.colOnLayer0
-                text: Translation.tr("Settings")
-                Layout.leftMargin: 20
-                font {
-                    family: Appearance.font.family.title
-                    pixelSize: Appearance.font.pixelSize.title
-                    variableAxes: Appearance.font.variableAxes.title
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: "tune"
+                    iconSize: 20
+                    color: Appearance.colors.colOnPrimaryContainer
+                }
+            }
+
+            ColumnLayout {
+                spacing: 0
+                StyledText {
+                    id: titleText
+                    color: Appearance.colors.colOnLayer0
+                    text: Translation.tr("illogical-impulse")
+                    font {
+                        family: Appearance.font.family.title
+                        pixelSize: Appearance.font.pixelSize.larger
+                        weight: Font.Bold
+                    }
+                }
+                StyledText {
+                    color: Appearance.colors.colSubtext
+                    text: Translation.tr("System & Desktop Settings")
+                    font {
+                        family: Appearance.font.family.main
+                        pixelSize: Appearance.font.pixelSize.smallest
+                    }
                 }
             }
 
@@ -147,14 +171,15 @@ ApplicationWindow {
 
             RowLayout {
                 id: searchBox
+                spacing: 4
 
                 SequentialAnimation {
                     id: noMoreResultsAnim
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: -30; duration: 50 }
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 30; duration: 50 }
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: -15; duration: 40 }
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 15; duration: 40 }
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 0; duration: 30 }
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: -20; duration: 40 }
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 20; duration: 40 }
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: -10; duration: 30 }
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 10; duration: 30 }
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 0; duration: 20 }
                 }
 
                 MaterialShapeWrappedMaterialSymbol {
@@ -200,23 +225,6 @@ ApplicationWindow {
                         root.resultsCount = 0
                     }
 
-                    // We may use this in the future, this only searches the best result
-                    /* onAccepted: {
-                        if (!searchInput.text || searchInput.text.trim() === "") return
-                        
-                        let normalizedText = searchInput.text.toLowerCase()
-                        let bestResult = SearchRegistry.getBestResult(normalizedText)
-
-                        if (!bestResult) {
-                            noMoreResultsAnim.restart()
-                            return
-                        }
-
-                        root.currentPage = bestResult.pageIndex
-                        root.scrollPos = bestResult.yPos
-                        SearchRegistry.currentSearch = bestResult.matchedString
-                    } */
-
                     onAccepted: {
                         const result = SearchRegistry.getResultsRanked(searchInput.text)
 
@@ -247,13 +255,30 @@ ApplicationWindow {
                         let results = SearchRegistry.getResultsRanked(normalizedText)
                         if (results.length > 0) {
                             let index = root.lastSearchIndex % results.length
-                            let result = results[index]
+                            let res = results[index]
                             
                             root.resultsCount = results.length
-                            root.currentPage = result.pageIndex
-                            //root.scrollPos = result.yPos
-                            SearchRegistry.currentSearch = result.matchedString
+                            root.currentPage = res.pageIndex
+                            SearchRegistry.currentSearch = res.matchedString
                         }
+                    }
+                }
+
+                RippleButton {
+                    visible: searchInput.text.length > 0
+                    buttonRadius: Appearance.rounding.full
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    onClicked: {
+                        searchInput.text = ""
+                        root.lastSearchIndex = -1
+                        root.resultsCount = 0
+                    }
+                    contentItem: MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "close"
+                        iconSize: 16
+                        color: Appearance.colors.colSubtext
                     }
                 }
             }
@@ -286,7 +311,7 @@ ApplicationWindow {
                 id: navRailWrapper
                 Layout.fillHeight: true
                 Layout.margins: 5
-                implicitWidth: navRail.expanded ? 150 : fab.baseSize
+                implicitWidth: navRail.expanded ? 150 : 56
                 Behavior on implicitWidth {
                     animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                 }
@@ -302,34 +327,6 @@ ApplicationWindow {
                     
                     NavigationRailExpandButton {
                         focus: root.visible
-                    }
-
-                    FloatingActionButton {
-                        id: fab
-                        property bool justCopied: false
-                        iconText: justCopied ? "check" : "edit"
-                        buttonText: justCopied ? Translation.tr("Path copied") : Translation.tr("Config file")
-                        expanded: navRail.expanded
-                        downAction: () => {
-                            Qt.openUrlExternally(`${Directories.config}/illogical-impulse/config.json`);
-                        }
-                        altAction: () => {
-                            Quickshell.clipboardText = CF.FileUtils.trimFileProtocol(`${Directories.config}/illogical-impulse/config.json`);
-                            fab.justCopied = true;
-                            revertTextTimer.restart()
-                        }
-
-                        Timer {
-                            id: revertTextTimer
-                            interval: 1500
-                            onTriggered: {
-                                fab.justCopied = false;
-                            }
-                        }
-
-                        StyledToolTip {
-                            text: Translation.tr("Open the shell config file\nAlternatively right-click to copy path")
-                        }
                     }
 
                     NavigationRailTabArray {
@@ -388,7 +385,9 @@ ApplicationWindow {
                         id: scrollTimer
                         interval: 250
                         onTriggered: {
-                            pageLoader.item.contentY = root.scrollPos
+                            if (pageLoader.item && pageLoader.item.contentY !== undefined) {
+                                pageLoader.item.contentY = root.scrollPos
+                            }
                             root.scrollPos = -1
                         }
                     }
@@ -405,36 +404,19 @@ ApplicationWindow {
                             easing.type: Appearance.animation.elementMoveExit.type
                             easing.bezierCurve: Appearance.animationCurves.emphasizedFirstHalf
                         }
-                        ParallelAnimation {
-                            PropertyAction {
-                                target: pageLoader
-                                property: "source"
-                                value: root.pages[root.currentPage].component
-                            }
-                            PropertyAction {
-                                target: pageLoader
-                                property: "anchors.topMargin"
-                                value: 20
-                            }
+                        PropertyAction {
+                            target: pageLoader
+                            property: "source"
+                            value: root.pages[root.currentPage] ? root.pages[root.currentPage].component : ""
                         }
-                        ParallelAnimation {
-                            NumberAnimation {
-                                target: pageLoader
-                                properties: "opacity"
-                                from: 0
-                                to: 1
-                                duration: 200
-                                easing.type: Appearance.animation.elementMoveEnter.type
-                                easing.bezierCurve: Appearance.animationCurves.emphasizedLastHalf
-                            }
-                            NumberAnimation {
-                                target: pageLoader
-                                properties: "anchors.topMargin"
-                                to: 0
-                                duration: 200
-                                easing.type: Appearance.animation.elementMoveEnter.type
-                                easing.bezierCurve: Appearance.animationCurves.emphasizedLastHalf
-                            }
+                        NumberAnimation {
+                            target: pageLoader
+                            properties: "opacity"
+                            from: 0
+                            to: 1
+                            duration: 180
+                            easing.type: Appearance.animation.elementMoveEnter.type
+                            easing.bezierCurve: Appearance.animationCurves.emphasizedLastHalf
                         }
                     }
                 }

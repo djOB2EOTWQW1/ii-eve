@@ -27,9 +27,17 @@ ContentPage {
 
     function scrollTo(stringId) {
         const item = componentMap[stringId]
-        page.contentY = item.y
+        if (item) page.contentY = item.y
     }
 
+
+    ContentSection {
+        icon: "touch_app"
+        title: Translation.tr("Interactive Placement")
+        tooltip: Translation.tr("Visually preview and select shell bar positioning")
+
+        BarVisualSelector {}
+    }
 
     ContentSection {
         icon: "mobile_layout"

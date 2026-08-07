@@ -8,85 +8,6 @@ ContentPage {
     id: page;
     readonly property int index: 5
     property bool register: parent.register ?? false
-    forceWidth: true
-
-    ContentSection {
-        icon: "neurology"
-        title: Translation.tr("AI")
-
-        MaterialTextArea {
-            Layout.fillWidth: true
-            placeholderText: Translation.tr("System prompt")
-            text: Config.options.ai.systemPrompt
-            wrapMode: TextEdit.Wrap
-            onTextChanged: {
-                Qt.callLater(() => {
-                    Config.options.ai.systemPrompt = text;
-                });
-            }
-        }
-    }
-
-    ContentSection {
-        icon: "album"
-        title: Translation.tr("Media")
-
-        ContentSubsection {
-            title: Translation.tr("Prioritized player")
-            tooltip: Translation.tr("Automatically sets the active player to a newly detected player if its identifier matches the value specified in the priority player property so you dont have to manually set the active player")
-
-            MaterialTextArea {
-                Layout.fillWidth: true
-                placeholderText: Translation.tr("Desktop entry name (e.g. spotify, google-chrome)")
-                text: Config.options.media.priorityPlayer
-                wrapMode: TextEdit.NoWrap
-                onTextChanged: {
-                    Config.options.media.priorityPlayer = text;
-                }
-            }
-        }
-
-        ConfigSwitch {
-            buttonIcon: "filter_list"
-            text: Translation.tr("Filter duplicate players")
-            checked: Config.options.media.filterDuplicatePlayers
-            onCheckedChanged: {
-                Config.options.media.filterDuplicatePlayers = checked;
-            }
-            StyledToolTip {
-                text: Translation.tr("Attempt to remove dupes (the aggregator playerctl one and browsers' native ones when there's plasma browser integration)")
-            }
-        }
-
-    }
-
-    ContentSection {
-        icon: "music_cast"
-        title: Translation.tr("Music Recognition")
-
-        ConfigSpinBox {
-            icon: "timer_off"
-            text: Translation.tr("Total duration timeout (s)")
-            value: Config.options.musicRecognition.timeout
-            from: 10
-            to: 100
-            stepSize: 2
-            onValueChanged: {
-                Config.options.musicRecognition.timeout = value;
-            }
-        }
-        ConfigSpinBox {
-            icon: "av_timer"
-            text: Translation.tr("Polling interval (s)")
-            value: Config.options.musicRecognition.interval
-            from: 2
-            to: 10
-            stepSize: 1
-            onValueChanged: {
-                Config.options.musicRecognition.interval = value;
-            }
-        }
-    }
 
     ContentSection {
         icon: "cell_tower"
@@ -225,49 +146,6 @@ ContentPage {
             stepSize: 1
             onValueChanged: {
                 Config.options.screenRecord.quality = value;
-            }
-        }
-    }
-
-    ContentSection {
-        icon: "devices"
-        title: Translation.tr("LocalSend")
-        tooltip: Translation.tr("You must have the localsend-cli installed\nCheck repo wiki for more information")
-
-        ConfigSwitch {
-            buttonIcon: "power_settings_new"
-            text: Translation.tr("Auto-start server")
-            checked: Config.options.localsend.autoStart
-            enabled: LocalSend.available
-            onCheckedChanged: {
-                Config.options.localsend.autoStart = checked;
-            }
-            StyledToolTip {
-                text: Translation.tr("Automatically start LocalSend server when shell starts")
-            }
-        }
-
-        ConfigSwitch {
-            buttonIcon: "notifications"
-            text: Translation.tr("Show notifications")
-            checked: Config.options.localsend.showNotifications
-            enabled: LocalSend.available
-            onCheckedChanged: {
-                Config.options.localsend.showNotifications = checked;
-            }
-            StyledToolTip {
-                text: Translation.tr("Show notifications for incoming transfers and completed downloads")
-            }
-        }
-
-        MaterialTextArea {
-            Layout.fillWidth: true
-            placeholderText: Translation.tr("Download path")
-            text: Config.options.localsend.downloadPath
-            wrapMode: TextEdit.Wrap
-            enabled: LocalSend.available
-            onTextChanged: {
-                Config.options.localsend.downloadPath = text;
             }
         }
     }

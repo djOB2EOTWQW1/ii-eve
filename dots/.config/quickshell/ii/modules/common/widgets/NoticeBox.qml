@@ -1,5 +1,6 @@
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.common.functions
 import QtQuick
 import QtQuick.Layouts
 
@@ -9,16 +10,19 @@ Rectangle {
     property alias text: noticeText.text
     default property alias boxData: buttonRow.data
 
-    radius: Appearance.rounding.normal
+    radius: Appearance.rounding.large
     color: Appearance.colors.colPrimaryContainer
+    border.color: ColorUtils.transparentize(Appearance.colors.colOnPrimaryContainer, 0.8)
+    border.width: 1
+    
     implicitWidth: mainRowLayout.implicitWidth + mainRowLayout.anchors.margins * 2
     implicitHeight: mainRowLayout.implicitHeight + mainRowLayout.anchors.margins * 2
 
     RowLayout {
         id: mainRowLayout
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 8
+        anchors.margins: 14
+        spacing: 12
 
         MaterialSymbol {
             id: icon
