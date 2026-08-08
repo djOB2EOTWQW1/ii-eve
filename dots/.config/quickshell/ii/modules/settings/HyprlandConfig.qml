@@ -51,7 +51,7 @@ ContentPage {
     property int inactiveOpacity: 100
 
     // Dynamic available modes for the CURRENTLY SELECTED monitor
-    readonly property list<var> availableModes: {
+    readonly property var availableModes: {
         if (!currentMonitor || !currentMonitor.availableModes || currentMonitor.availableModes.length === 0) {
             const w = currentMonitor?.width || 1920
             const h = currentMonitor?.height || 1080
@@ -158,8 +158,13 @@ ContentPage {
 
     function applyInputSettings() {
         if (!page.isLoaded) return
-        const luaCmd = `hyprctl eval "hl.config({ input = { repeat_delay = ${inputRepeatDelay}, repeat_rate = ${inputRepeatRate}, touchpad = { natural_scroll = ${inputNaturalScroll}, tap_to_click = ${inputTapToClick}, disable_while_typing = ${inputDisableWhileTyping} } } })"`
-        Quickshell.execDetached(["bash", "-c", luaCmd]);
+        const luaCode = `hl.config({ input = { repeat_delay = ${inputRepeatDelay}, repeat_rate = ${inputRepeatRate}, touchpad = { natural_scroll = ${inputNaturalScroll}, tap_to_click = ${inputTapToClick}, disable_while_typing = ${inputDisableWhileTyping} } } })`
+        const luaCmd = `hyprctl eval "${luaCode}"`
+        const fallbackCmd = `hyprctl keyword input:repeat_delay ${inputRepeatDelay} && hyprctl keyword input:repeat_rate ${inputRepeatRate} && hyprctl keyword input:touchpad:natural_scroll ${inputNaturalScroll ? 1 : 0} && hyprctl keyword input:touchpad:tap-to-click ${inputTapToClick ? 1 : 0} && hyprctl keyword input:touchpad:disable_while_typing ${inputDisableWhileTyping ? 1 : 0}`
+        const scriptPath = FileUtils.trimFileProtocol(Directories.config) + "/hypr/custom/scripts/update_general_lua.py"
+        const saveCmd = `python3 '${scriptPath}' INPUT "${luaCode}"`
+        const applyCmd = `(${luaCmd} || (${fallbackCmd})) && (${saveCmd})`
+        Quickshell.execDetached(["bash", "-c", applyCmd]);
     }
 
     function applyOpacitySettings() {
@@ -168,8 +173,13 @@ ContentPage {
         const actOpStr = (activeOpacity / 100.0).toFixed(2)
         const inactOpStr = (inactiveOpacity / 100.0).toFixed(2)
 
-        const luaCmd = `hyprctl eval "hl.config({ decoration = { dim_inactive = ${dimInactive}, dim_strength = ${dimStr}, active_opacity = ${actOpStr}, inactive_opacity = ${inactOpStr} } })"`
-        Quickshell.execDetached(["bash", "-c", luaCmd]);
+        const luaCode = `hl.config({ decoration = { dim_inactive = ${dimInactive}, dim_strength = ${dimStr}, active_opacity = ${actOpStr}, inactive_opacity = ${inactOpStr} } })`
+        const luaCmd = `hyprctl eval "${luaCode}"`
+        const fallbackCmd = `hyprctl keyword decoration:dim_inactive ${dimInactive ? 1 : 0} && hyprctl keyword decoration:dim_strength ${dimStr} && hyprctl keyword decoration:active_opacity ${actOpStr} && hyprctl keyword decoration:inactive_opacity ${inactOpStr}`
+        const scriptPath = FileUtils.trimFileProtocol(Directories.config) + "/hypr/custom/scripts/update_general_lua.py"
+        const saveCmd = `python3 '${scriptPath}' DECORATION "${luaCode}"`
+        const applyCmd = `(${luaCmd} || (${fallbackCmd})) && (${saveCmd})`
+        Quickshell.execDetached(["bash", "-c", applyCmd]);
     }
 
     Timer {
@@ -651,7 +661,12 @@ ContentPage {
                     const optStr = kbSection.kbOption;
                     const rateVal = kbSection.kbRepeatRate;
                     const delayVal = kbSection.kbRepeatDelay;
-                    const applyCmd = `hyprctl eval "hl.config({ input = { kb_layout = '${layoutStr}', kb_options = '${optStr}', repeat_rate = ${rateVal}, repeat_delay = ${delayVal} } })" && mkdir -p ~/.config/hypr/custom && (grep -q "kb_layout" ~/.config/hypr/custom/general.lua 2>/dev/null || printf '\\nhl.config({ input = { kb_layout = "${layoutStr}", kb_options = "${optStr}", repeat_rate = ${rateVal}, repeat_delay = ${delayVal} } })\\n' >> ~/.config/hypr/custom/general.lua)`;
+                    const luaCode = `hl.config({ input = { kb_layout = "${layoutStr}", kb_options = "${optStr}", repeat_rate = ${rateVal}, repeat_delay = ${delayVal} } })`;
+                    const luaCmd = `hyprctl eval "${luaCode}"`;
+                    const fallbackCmd = `hyprctl keyword input:kb_layout '${layoutStr}' && hyprctl keyword input:kb_options '${optStr}' && hyprctl keyword input:repeat_rate ${rateVal} && hyprctl keyword input:repeat_delay ${delayVal}`;
+                    const scriptPath = FileUtils.trimFileProtocol(Directories.config) + "/hypr/custom/scripts/update_general_lua.py";
+                    const saveCmd = `python3 '${scriptPath}' KEYBOARD "${luaCode}"`;
+                    const applyCmd = `(${luaCmd} || (${fallbackCmd})) && (${saveCmd})`;
                     Quickshell.execDetached(["bash", "-c", applyCmd]);
                     kbSection.appliedKbSuccess = true;
                     kbApplyTimer.restart();

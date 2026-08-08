@@ -91,6 +91,10 @@ Singleton {
                 property bool enable: true
             }
 
+            property JsonObject autostart: JsonObject {
+                property list<string> disabledServices: []
+            }
+
             property JsonObject localsend: JsonObject {
                 property bool autoStart: true
                 property string downloadPath: Directories.localSendDownloadPath.replace("file://", "")

@@ -120,7 +120,9 @@ Singleton {
         stdout: StdioCollector {
             id: deCollector
             onStreamFinished: {
-                const [desktop, wayland] = deCollector.text.split(",")
+                const parts = (deCollector.text || "").split(",")
+                const desktop = parts[0] || ""
+                const wayland = parts[1] || ""
                 root.desktopEnvironment = desktop.trim()
                 root.windowingSystem = wayland.trim().length > 0 ? "Wayland" : "X11" // Are there others? 🤔
             }

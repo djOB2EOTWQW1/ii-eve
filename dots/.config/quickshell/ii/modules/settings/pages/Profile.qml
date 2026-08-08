@@ -45,7 +45,7 @@ ContentPage {
     function applyHostname() {
         const newName = page.hostnameInput.trim()
         if (newName.length === 0 || newName === SystemInfo.hostname) return
-        hostnameSetProc.command = ["hostnamectl", "set-hostname", newName]
+        hostnameSetProc.command = ["pkexec", "hostnamectl", "set-hostname", newName]
         hostnameSetProc.running = true
     }
 

@@ -18,18 +18,19 @@ action="$1"
 name="$2"
 
 if [ "$action" = "--list" ] || [ "$action" = "list" ]; then
-    echo "["
-    first=1
+    items=()
     for f in "$PRESETS_DIR"/*.json; do
         [ -e "$f" ] || continue
-        [ $first -eq 0 ] && echo ","
-        first=0
         bname=$(basename "$f" .json)
         mtime=$(stat -c %Y "$f" 2>/dev/null || echo 0)
-        printf '  {"name": "%s", "path": "%s", "mtime": %s}' "$bname" "$f" "$mtime"
+        item=$(jq -n --arg name "$bname" --arg path "$f" --argjson mtime "${mtime:-0}" '{"name": $name, "path": $path, "mtime": $mtime}')
+        items+=("$item")
     done
-    echo ""
-    echo "]"
+    if [ ${#items[@]} -eq 0 ]; then
+        echo "[]"
+    else
+        printf '%s\n' "${items[@]}" | jq -s '.'
+    fi
     exit 0
 fi
 
@@ -49,7 +50,7 @@ case "$action" in
         fi
         ;;
     --rename|rename)
-        new_name="$3"
+        new_name="${*:3}"
         new_name=$(echo "$new_name" | tr ' ' '_')
         if [ -n "$new_name" ] && [ -f "$PRESETS_DIR/${name}.json" ]; then
             mv "$PRESETS_DIR/${name}.json" "$PRESETS_DIR/${new_name}.json"

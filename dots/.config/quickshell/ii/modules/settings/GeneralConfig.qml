@@ -39,9 +39,25 @@ ContentPage {
         loadCustomAutostartProc.running = true
     }
 
+    function toggleAutostartService(serviceId, enable) {
+        let list = Config.options.autostart?.disabledServices ? [...Config.options.autostart.disabledServices] : [];
+        const idx = list.indexOf(serviceId);
+        if (enable && idx !== -1) {
+            list.splice(idx, 1);
+        } else if (!enable && idx === -1) {
+            list.push(serviceId);
+        }
+        Config.options.autostart.disabledServices = list;
+        const content = list.join("\n");
+        Quickshell.execDetached(["bash", "-c", "mkdir -p ~/.config/hypr/custom && printf '%s\\n' \"$1\" > ~/.config/hypr/custom/disabled_services.list", "--", content]);
+    }
+
     function removeCustomAutostartCmd(cmdToRemove) {
-        const escaped = cmdToRemove.replace(/[\/&\\]/g, '\\$&');
-        Quickshell.execDetached(["bash", "-c", `sed -i '/${escaped}/d' ~/.config/hypr/custom/user_autostart.sh 2>/dev/null`]);
+        Quickshell.execDetached([
+            "bash", "-c",
+            "TARGET=\"$1\"; if [ -f ~/.config/hypr/custom/user_autostart.sh ]; then grep -F -v -x \"$TARGET\" ~/.config/hypr/custom/user_autostart.sh > ~/.config/hypr/custom/user_autostart.sh.tmp && mv ~/.config/hypr/custom/user_autostart.sh.tmp ~/.config/hypr/custom/user_autostart.sh; fi",
+            "--", cmdToRemove
+        ]);
         reloadTimer.restart();
     }
 
@@ -237,10 +253,11 @@ ContentPage {
             ConfigSelectionArray {  
                 currentValue: Config.options.time.format  
                 onSelected: newValue => {  
+                    const lockFile = FileUtils.trimFileProtocol(Directories.config) + "/hypr/hyprlock.conf";
                     if (newValue === "hh:mm") {  
-                        Quickshell.execDetached(["bash", "-c", `sed -i 's/\\TIME12\\b/TIME/' '${FileUtils.trimFileProtocol(Directories.config)}/hypr/hyprlock.conf'`]);  
+                        Quickshell.execDetached(["bash", "-c", "sed -i 's/\\$TIME12/\\$TIME/g' \"$1\"", "--", lockFile]);  
                     } else {  
-                        Quickshell.execDetached(["bash", "-c", `sed -i 's/\\TIME\\b/TIME12/' '${FileUtils.trimFileProtocol(Directories.config)}/hypr/hyprlock.conf'`]);  
+                        Quickshell.execDetached(["bash", "-c", "sed -i 's/\\$TIME\\b/\\$TIME12/g' \"$1\"", "--", lockFile]);  
                     }  
   
                     Config.options.time.format = newValue;  
@@ -403,9 +420,9 @@ ContentPage {
                     required property var modelData
                     buttonIcon: modelData.icon
                     text: modelData.name
-                    checked: modelData.enabled
+                    checked: !(Config.options.autostart?.disabledServices || []).includes(modelData.id)
                     onCheckedChanged: {
-                        modelData.enabled = checked;
+                        page.toggleAutostartService(modelData.id, checked);
                     }
                     StyledToolTip {
                         text: modelData.command
@@ -498,8 +515,8 @@ ContentPage {
                     onClicked: {
                         if (customExecInput.text.trim().length > 0) {
                             const cmd = customExecInput.text.trim();
-                            const appendCmd = `mkdir -p ~/.config/hypr/custom && echo "${cmd}" >> ~/.config/hypr/custom/user_autostart.sh && chmod +x ~/.config/hypr/custom/user_autostart.sh`;
-                            Quickshell.execDetached(["bash", "-c", appendCmd]);
+                            const appendCmd = "mkdir -p ~/.config/hypr/custom && printf '%s\\n' \"$1\" >> ~/.config/hypr/custom/user_autostart.sh && chmod +x ~/.config/hypr/custom/user_autostart.sh";
+                            Quickshell.execDetached(["bash", "-c", appendCmd, "--", cmd]);
                             customExecInput.text = "";
                             reloadTimer.restart();
                         }
