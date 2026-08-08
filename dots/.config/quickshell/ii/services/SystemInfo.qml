@@ -13,7 +13,8 @@ Singleton {
     property string distroName: "Unknown"
     property string distroId: "unknown"
     property string distroIcon: "linux-symbolic"
-    property string username: "user"
+    property string username: Quickshell.env("USER") ?? "user"
+    property string hostname: Quickshell.env("HOSTNAME") ?? Quickshell.env("HOST") ?? "cachyos"
     property string homeUrl: ""
     property string documentationUrl: ""
     property string supportUrl: ""
@@ -92,6 +93,22 @@ Singleton {
         stdout: SplitParser {
             onRead: data => {
                 root.username = data.trim()
+            }
+        }
+    }
+
+    function refreshHostname() {
+        getHostnameProcess.running = true
+    }
+
+    Process {
+        id: getHostnameProcess
+        running: true
+        command: ["uname", "-n"]
+        stdout: SplitParser {
+            onRead: data => {
+                const trimmed = data.trim()
+                if (trimmed.length > 0) root.hostname = trimmed
             }
         }
     }

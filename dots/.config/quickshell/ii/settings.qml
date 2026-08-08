@@ -10,6 +10,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import qs.services
 import qs.modules.common
@@ -29,6 +30,9 @@ ApplicationWindow {
     property string lastSearch: ""
     property int lastSearchIndex: -1
     property int resultsCount: 0
+
+    property bool showingProfile: false
+    readonly property string activePageSource: root.showingProfile ? "modules/settings/pages/Profile.qml" : (root.pages[root.currentPage] ? root.pages[root.currentPage].component : "")
 
     property var pages: [
         {
@@ -106,18 +110,22 @@ ApplicationWindow {
             if (event.modifiers === Qt.ControlModifier) {
                 if (event.key === Qt.Key_PageDown) {
                     root.currentPage = Math.min(root.currentPage + 1, root.pages.length - 1)
+                    root.showingProfile = false;
                     event.accepted = true;
                 } 
                 else if (event.key === Qt.Key_PageUp) {
                     root.currentPage = Math.max(root.currentPage - 1, 0)
+                    root.showingProfile = false;
                     event.accepted = true;
                 }
                 else if (event.key === Qt.Key_Tab) {
                     root.currentPage = (root.currentPage + 1) % root.pages.length;
+                    root.showingProfile = false;
                     event.accepted = true;
                 }
                 else if (event.key === Qt.Key_Backtab) {
                     root.currentPage = (root.currentPage - 1 + root.pages.length) % root.pages.length;
+                    root.showingProfile = false;
                     event.accepted = true;
                 }
             }
@@ -159,133 +167,36 @@ ApplicationWindow {
                     color: Appearance.colors.colSubtext
                     text: Translation.tr("System & Desktop Settings")
                     font {
-                        family: Appearance.font.family.main
-                        pixelSize: Appearance.font.pixelSize.smallest
+                        pixelSize: Appearance.font.pixelSize.small
                     }
                 }
             }
 
-            Item {
-                Layout.fillWidth: true
-            }
+            Item { Layout.fillWidth: true }
 
-            RowLayout {
-                id: searchBox
-                spacing: 4
+            ToolbarTextField { // Search box
+                id: searchInput
+                Layout.topMargin: 4
+                Layout.bottomMargin: 4
+                font.pixelSize: Appearance.font.pixelSize.small
+                placeholderText: Translation.tr("Search all settings..")
+                implicitWidth: Appearance.sizes.searchWidth
 
-                SequentialAnimation {
-                    id: noMoreResultsAnim
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: -20; duration: 40 }
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 20; duration: 40 }
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: -10; duration: 30 }
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 10; duration: 30 }
-                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 0; duration: 20 }
+                Component.onCompleted: {
+                    searchInput.forceActiveFocus()
                 }
 
-                MaterialShapeWrappedMaterialSymbol {
-                    iconSize: Appearance.font.pixelSize.huge
-                    shape: MaterialShape.Shape.Ghostish
-                    text: resultText.show ? "" : "search" 
-                    animateChange: true
-
-                    StyledText {
-                        id: resultText
-
-                        readonly property bool show: root.lastSearchIndex !== -1 && root.resultsCount > 0
-
-                        visible: false
-                        animateChange: true
-                        anchors.centerIn: parent
-                        text: (root.lastSearchIndex % root.resultsCount + 1) + "/" + root.resultsCount
-
-                        onShowChanged: if (!show) resultText.visible = false
-                        Timer {
-                            id: showTimer
-                            interval: 100
-                            running: resultText.show
-                            repeat: false
-                            onTriggered: resultText.visible = true
+                onAccepted: {
+                    const result = SearchRegistry.getResultsRanked(searchInput.text)
+                    if (result && result.length > 0) {
+                        let res = result[0]
+                        let pageIndex = root.pages.findIndex(p => p.name.toLowerCase() === res.page.toLowerCase())
+                        if (pageIndex !== -1) {
+                            root.currentPage = pageIndex
+                            root.showingProfile = false
                         }
                     }
                 }
-                ToolbarTextField { // Search box
-                    id: searchInput
-                    Layout.topMargin: 4
-                    Layout.bottomMargin: 4
-                    font.pixelSize: Appearance.font.pixelSize.small
-                    placeholderText: Translation.tr("Search all settings..")
-                    implicitWidth: Appearance.sizes.searchWidth
-
-                    Component.onCompleted: {
-                        searchInput.forceActiveFocus()
-                    }
-
-                    onTextChanged: {
-                        root.lastSearchIndex = -1
-                        root.resultsCount = 0
-                    }
-
-                    onAccepted: {
-                        const result = SearchRegistry.getResultsRanked(searchInput.text)
-
-                        if (result == null) {
-                            noMoreResultsAnim.restart();
-                            return
-                        }
-
-                        let length = SearchRegistry.getResultsRanked(searchInput.text).length
-
-                        if (length == 0) {
-                            noMoreResultsAnim.restart();
-                            return
-                        }
-                        
-                        if (root.lastSearch != searchInput.text) {
-                            root.lastSearchIndex = 0
-                            root.lastSearch = searchInput.text
-                            
-                        } else {
-                            root.lastSearchIndex++
-                            if (SearchRegistry.getResultsRanked(searchInput.text).length === 1) {
-                                noMoreResultsAnim.restart()
-                            }
-                        }
-
-                        let normalizedText = searchInput.text.toLowerCase()
-                        let results = SearchRegistry.getResultsRanked(normalizedText)
-                        if (results.length > 0) {
-                            let index = root.lastSearchIndex % results.length
-                            let res = results[index]
-                            
-                            root.resultsCount = results.length
-                            root.currentPage = res.pageIndex
-                            SearchRegistry.currentSearch = res.matchedString
-                        }
-                    }
-                }
-
-                RippleButton {
-                    visible: searchInput.text.length > 0
-                    buttonRadius: Appearance.rounding.full
-                    implicitWidth: 28
-                    implicitHeight: 28
-                    onClicked: {
-                        searchInput.text = ""
-                        root.lastSearchIndex = -1
-                        root.resultsCount = 0
-                    }
-                    contentItem: MaterialSymbol {
-                        anchors.centerIn: parent
-                        text: "close"
-                        iconSize: 16
-                        color: Appearance.colors.colSubtext
-                    }
-                }
-            }
-            
-
-            Item {
-                Layout.fillWidth: true
             }
 
             RippleButton {
@@ -311,7 +222,7 @@ ApplicationWindow {
                 id: navRailWrapper
                 Layout.fillHeight: true
                 Layout.margins: 5
-                implicitWidth: navRail.expanded ? 150 : 56
+                implicitWidth: navRail.expanded ? 195 : 56
                 Behavior on implicitWidth {
                     animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                 }
@@ -329,16 +240,95 @@ ApplicationWindow {
                         focus: root.visible
                     }
 
+                    // Profile Header in Sidebar (like end4-pC)
+                    Item {
+                        visible: navRail.expanded
+                        Layout.fillWidth: true
+                        implicitHeight: 48
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 4
+                            anchors.rightMargin: 4
+                            spacing: 8
+
+                            Rectangle {
+                                width: 36
+                                height: 36
+                                radius: 18
+                                color: Appearance.colors.colPrimaryContainer
+
+                                Image {
+                                    id: avatarImg
+                                    anchors.fill: parent
+                                    source: {
+                                        const pic = Config.options.profile.avatarPicture
+                                        if (!pic || pic === "") return "file://" + CF.FileUtils.trimFileProtocol(Directories.home) + "/.face"
+                                        return "file://" + CF.FileUtils.trimFileProtocol(pic)
+                                    }
+                                    fillMode: Image.PreserveAspectCrop
+                                    layer.enabled: true
+                                    layer.effect: OpacityMask {
+                                        maskSource: Rectangle { width: 36; height: 36; radius: 18 }
+                                    }
+                                    onStatusChanged: {
+                                        if (status === Image.Ready) visible = true
+                                        else if (status === Image.Error) visible = false
+                                    }
+                                }
+
+                                MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "account_circle"
+                                    iconSize: 22
+                                    color: Appearance.colors.colOnPrimaryContainer
+                                    visible: !avatarImg.visible || avatarImg.status === Image.Error
+                                }
+                            }
+
+                            ColumnLayout {
+                                spacing: 0
+                                Layout.fillWidth: true
+
+                                StyledText {
+                                    text: Config.options.profile.displayName !== "" ? Config.options.profile.displayName : SystemInfo.username
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    font.weight: Font.DemiBold
+                                    color: Appearance.colors.colOnLayer0
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                StyledText {
+                                    text: Config.options.profile.descriptionText === "::uptime::" ? Translation.tr("Up • %1").arg(DateTime.uptime) : SystemInfo.distroName
+                                    font.pixelSize: Appearance.font.pixelSize.smallest
+                                    color: Appearance.colors.colSubtext
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.showingProfile = !root.showingProfile
+                        }
+                    }
+
                     NavigationRailTabArray {
-                        currentIndex: root.currentPage
+                        currentIndex: root.showingProfile ? -1 : root.currentPage
                         expanded: navRail.expanded
                         Repeater {
                             model: root.pages
                             NavigationRailButton {
                                 required property var index
                                 required property var modelData
-                                toggled: root.currentPage === index
-                                onPressed: root.currentPage = index;
+                                toggled: !root.showingProfile && root.currentPage === index
+                                onClicked: {
+                                    root.currentPage = index;
+                                    root.showingProfile = false;
+                                }
                                 expanded: navRail.expanded
                                 buttonIcon: modelData.icon
                                 buttonIconRotation: modelData.iconRotation || 0
@@ -366,12 +356,16 @@ ApplicationWindow {
 
                     active: Config.ready
                     Component.onCompleted: {
-                        source = root.pages[0].component
+                        source = root.activePageSource
                     }
 
                     Connections {
                         target: root
                         function onCurrentPageChanged() {
+                            switchAnim.complete();
+                            switchAnim.start();
+                        }
+                        function onShowingProfileChanged() {
                             switchAnim.complete();
                             switchAnim.start();
                         }
@@ -407,7 +401,7 @@ ApplicationWindow {
                         PropertyAction {
                             target: pageLoader
                             property: "source"
-                            value: root.pages[root.currentPage] ? root.pages[root.currentPage].component : ""
+                            value: root.activePageSource
                         }
                         NumberAnimation {
                             target: pageLoader

@@ -27,6 +27,7 @@ Item {
     Layout.topMargin: 25
 
     Rectangle {
+        visible: root.currentIndex >= 0
         property real itemHeight: root._tabButtons[0]?.baseSize ?? 56
         property real baseHighlightHeight: root._tabButtons[0]?.baseHighlightHeight ?? 32
         anchors {
