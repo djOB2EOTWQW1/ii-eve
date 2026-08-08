@@ -130,9 +130,11 @@ Rectangle {
 
             StyledImage {
                 anchors.fill: parent
+                asynchronous: true
+                sourceSize: Qt.size(580, 260)
                 fillMode: Image.PreserveAspectCrop
                 source: root.imageSource
-                cache: false
+                cache: true
                 visible: status === Image.Ready && root.imageSource !== ""
                 layer.enabled: true
                 layer.effect: OpacityMask {

@@ -81,7 +81,9 @@ ContentPage {
 
                     Image {
                         id: heroAvatarImg
+                        asynchronous: true
                         anchors.fill: parent
+                        sourceSize: Qt.size(160, 160)
                         source: Config.options.profile.avatarPicture !== "" ? "file://" + Config.options.profile.avatarPicture : "file://" + CF.FileUtils.trimFileProtocol(Directories.home) + "/.face"
                         fillMode: Image.PreserveAspectCrop
                         smooth: true
@@ -284,6 +286,7 @@ ContentPage {
                                 width: 60
                                 height: 60
                                 radius: 30
+                                clip: true
                                 color: Appearance.colors.colLayer2
                                 border.color: isSelected ? Appearance.colors.colPrimary : Appearance.colors.colLayer0Border
                                 border.width: isSelected ? 3 : 1
@@ -300,15 +303,11 @@ ContentPage {
 
                                 Image {
                                     id: avatarImg
+                                    asynchronous: true
                                     anchors.fill: parent
                                     source: filePath
+                                    sourceSize: Qt.size(120, 120)
                                     fillMode: Image.PreserveAspectCrop
-                                    layer.enabled: true
-                                    layer.effect: OpacityMask {
-                                        maskSource: Rectangle {
-                                            width: 60; height: 60; radius: 30
-                                        }
-                                    }
                                 }
 
                                 // Selection Checkmark Badge

@@ -94,6 +94,11 @@ ApplicationWindow {
         ExtensionManager.watchFileChanges = false // Settings app doesn't need file watching to prevent loops
     }
 
+    function goToPage(index) {
+        root.currentPage = index
+        root.showingProfile = false
+    }
+
     minimumWidth: 750
     minimumHeight: 500
     width: 1100
@@ -109,23 +114,19 @@ ApplicationWindow {
         Keys.onPressed: (event) => {
             if (event.modifiers === Qt.ControlModifier) {
                 if (event.key === Qt.Key_PageDown) {
-                    root.currentPage = Math.min(root.currentPage + 1, root.pages.length - 1)
-                    root.showingProfile = false;
+                    root.goToPage(Math.min(root.currentPage + 1, root.pages.length - 1))
                     event.accepted = true;
                 } 
                 else if (event.key === Qt.Key_PageUp) {
-                    root.currentPage = Math.max(root.currentPage - 1, 0)
-                    root.showingProfile = false;
+                    root.goToPage(Math.max(root.currentPage - 1, 0))
                     event.accepted = true;
                 }
                 else if (event.key === Qt.Key_Tab) {
-                    root.currentPage = (root.currentPage + 1) % root.pages.length;
-                    root.showingProfile = false;
+                    root.goToPage((root.currentPage + 1) % root.pages.length);
                     event.accepted = true;
                 }
                 else if (event.key === Qt.Key_Backtab) {
-                    root.currentPage = (root.currentPage - 1 + root.pages.length) % root.pages.length;
-                    root.showingProfile = false;
+                    root.goToPage((root.currentPage - 1 + root.pages.length) % root.pages.length);
                     event.accepted = true;
                 }
             }
@@ -174,27 +175,116 @@ ApplicationWindow {
 
             Item { Layout.fillWidth: true }
 
-            ToolbarTextField { // Search box
-                id: searchInput
-                Layout.topMargin: 4
-                Layout.bottomMargin: 4
-                font.pixelSize: Appearance.font.pixelSize.small
-                placeholderText: Translation.tr("Search all settings..")
-                implicitWidth: Appearance.sizes.searchWidth
+            RowLayout {
+                id: searchBox
 
-                Component.onCompleted: {
-                    searchInput.forceActiveFocus()
+                SequentialAnimation {
+                    id: noMoreResultsAnim
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: -30; duration: 50 }
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 30; duration: 50 }
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: -15; duration: 40 }
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 15; duration: 40 }
+                    NumberAnimation { target: searchBox; property: "Layout.leftMargin"; to: 0; duration: 30 }
                 }
 
-                onAccepted: {
-                    const result = SearchRegistry.getResultsRanked(searchInput.text)
-                    if (result && result.length > 0) {
-                        let res = result[0]
-                        let pageIndex = root.pages.findIndex(p => p.name.toLowerCase() === res.page.toLowerCase())
-                        if (pageIndex !== -1) {
-                            root.currentPage = pageIndex
-                            root.showingProfile = false
+                MaterialShapeWrappedMaterialSymbol {
+                    iconSize: Appearance.font.pixelSize.huge
+                    shape: MaterialShape.Shape.Ghostish
+                    text: resultText.show ? "" : "search" 
+                    animateChange: true
+
+                    StyledText {
+                        id: resultText
+
+                        readonly property bool show: root.lastSearchIndex !== -1 && root.resultsCount > 0
+
+                        visible: false
+                        animateChange: true
+                        anchors.centerIn: parent
+                        text: (root.lastSearchIndex % root.resultsCount + 1) + "/" + root.resultsCount
+
+                        onShowChanged: if (!show) resultText.visible = false
+                        Timer {
+                            id: showTimer
+                            interval: 100
+                            running: resultText.show
+                            repeat: false
+                            onTriggered: resultText.visible = true
                         }
+                    }
+                }
+
+                ToolbarTextField { // Search box
+                    id: searchInput
+                    Layout.topMargin: 4
+                    Layout.bottomMargin: 4
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    placeholderText: Translation.tr("Search all settings..")
+                    implicitWidth: Appearance.sizes.searchWidth
+
+                    Component.onCompleted: {
+                        searchInput.forceActiveFocus()
+                    }
+
+                    onTextChanged: {
+                        root.lastSearchIndex = -1
+                        root.resultsCount = 0
+                    }
+
+                    onAccepted: {
+                        const result = SearchRegistry.getResultsRanked(searchInput.text)
+
+                        if (result == null) {
+                            noMoreResultsAnim.restart();
+                            return
+                        }
+
+                        let length = SearchRegistry.getResultsRanked(searchInput.text).length
+
+                        if (length == 0) {
+                            noMoreResultsAnim.restart();
+                            return
+                        }
+                        
+                        if (root.lastSearch != searchInput.text) {
+                            root.lastSearchIndex = 0
+                            root.lastSearch = searchInput.text
+                        } else {
+                            root.lastSearchIndex++
+                            if (SearchRegistry.getResultsRanked(searchInput.text).length === 1) {
+                                noMoreResultsAnim.restart()
+                            }
+                        }
+
+                        let normalizedText = searchInput.text.toLowerCase()
+                        let results = SearchRegistry.getResultsRanked(normalizedText)
+                        if (results.length > 0) {
+                            let index = root.lastSearchIndex % results.length
+                            let res = results[index]
+                            
+                            root.resultsCount = results.length
+                            root.goToPage(res.pageIndex)
+                            SearchRegistry.currentSearch = res.matchedString
+                        }
+                    }
+                }
+
+                RippleButton {
+                    visible: searchInput.text.length > 0
+                    buttonRadius: Appearance.rounding.full
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    onClicked: {
+                        searchInput.text = ""
+                        root.lastSearchIndex = -1
+                        root.resultsCount = 0
+                        SearchRegistry.currentSearch = ""
+                    }
+                    contentItem: MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "close"
+                        iconSize: 16
+                        color: Appearance.colors.colSubtext
                     }
                 }
             }
@@ -326,8 +416,7 @@ ApplicationWindow {
                                 required property var modelData
                                 toggled: !root.showingProfile && root.currentPage === index
                                 onClicked: {
-                                    root.currentPage = index;
-                                    root.showingProfile = false;
+                                    root.goToPage(index);
                                 }
                                 expanded: navRail.expanded
                                 buttonIcon: modelData.icon
@@ -353,6 +442,7 @@ ApplicationWindow {
                     id: pageLoader
                     anchors.fill: parent
                     opacity: 1.0
+                    asynchronous: true
 
                     active: Config.ready
                     Component.onCompleted: {
@@ -361,11 +451,7 @@ ApplicationWindow {
 
                     Connections {
                         target: root
-                        function onCurrentPageChanged() {
-                            switchAnim.complete();
-                            switchAnim.start();
-                        }
-                        function onShowingProfileChanged() {
+                        function onActivePageSourceChanged() {
                             switchAnim.complete();
                             switchAnim.start();
                         }
