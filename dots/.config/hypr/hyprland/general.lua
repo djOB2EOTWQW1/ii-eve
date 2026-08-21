@@ -75,7 +75,7 @@ hl.config({
         rounding = 18,
 
         blur = {
-            enabled = true,
+            enabled = false,
             xray = true,
             special = false,
             new_optimizations = true,
@@ -254,7 +254,7 @@ hl.animation({
 
 hl.config({
     input = {
-        kb_layout = "us",
+        kb_layout = "us,ru",
         numlock_by_default = true,
         repeat_delay = 250,
         repeat_rate = 35,

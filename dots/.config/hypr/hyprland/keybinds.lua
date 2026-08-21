@@ -103,8 +103,8 @@ for i = 1, 10 do
     end)
 end
 
-hl.bind("CTRL + SUPER + mouse_down", hl.dsp.window.move({ workspace = "-1" }))
-hl.bind("CTRL + SUPER + mouse_up", hl.dsp.window.move({ workspace = "+1" }))
+hl.bind("CTRL + SUPER + mouse_down", hl.dsp.window.move({ workspace = "+1" }))
+hl.bind("CTRL + SUPER + mouse_up", hl.dsp.window.move({ workspace = "-1" }))
 hl.bind("SUPER + ALT + Page_Down", hl.dsp.window.move({ workspace = "+1" }))
 hl.bind("SUPER + ALT + Page_Up", hl.dsp.window.move({ workspace = "-1" }))
 hl.bind("SUPER + SHIFT + Page_Down", hl.dsp.window.move({ workspace = "r+1" }))
@@ -122,8 +122,8 @@ end
 
 hl.bind("CTRL + SUPER + Right", hl.dsp.focus({ workspace = "m+1" }))
 hl.bind("CTRL + SUPER + Left", hl.dsp.focus({ workspace = "m-1" }))
-hl.bind("SUPER + mouse_up", hl.dsp.focus({ workspace = "+1" }))
-hl.bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "-1" }))
+hl.bind("SUPER + mouse_up", hl.dsp.focus({ workspace = "-1" }))
+hl.bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "+1" }))
 hl.bind("SUPER + mouse:275", hl.dsp.workspace.toggle_special())
 
 --##! Session

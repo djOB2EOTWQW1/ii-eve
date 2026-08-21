@@ -36,7 +36,7 @@ for c in clients:
         exe_name = "dolphin"
 
     if ws and exe_name:
-        commands.append(f"hyprctl dispatch exec '[workspace {ws} silent] {exe_name}'")
+        commands.append(f"hyprctl dispatch 'hl.dsp.exec_cmd(\"{exe_name}\", {{workspace = {ws}}})'")
 
 if commands:
     with open(RESTORE_FILE, "w") as f:
