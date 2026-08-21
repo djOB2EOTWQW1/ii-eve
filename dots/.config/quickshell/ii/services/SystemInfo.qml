@@ -13,7 +13,8 @@ Singleton {
     property string distroName: "Unknown"
     property string distroId: "unknown"
     property string distroIcon: "linux-symbolic"
-    property string username: "user"
+    property string username: Quickshell.env("USER") ?? "user"
+    property string hostname: Quickshell.env("HOSTNAME") ?? Quickshell.env("HOST") ?? "cachyos"
     property string homeUrl: ""
     property string documentationUrl: ""
     property string supportUrl: ""
@@ -96,6 +97,22 @@ Singleton {
         }
     }
 
+    function refreshHostname() {
+        getHostnameProcess.running = true
+    }
+
+    Process {
+        id: getHostnameProcess
+        running: true
+        command: ["uname", "-n"]
+        stdout: SplitParser {
+            onRead: data => {
+                const trimmed = data.trim()
+                if (trimmed.length > 0) root.hostname = trimmed
+            }
+        }
+    }
+
     Process {
         id: getDesktopEnvironment
         running: true
@@ -103,7 +120,9 @@ Singleton {
         stdout: StdioCollector {
             id: deCollector
             onStreamFinished: {
-                const [desktop, wayland] = deCollector.text.split(",")
+                const parts = (deCollector.text || "").split(",")
+                const desktop = parts[0] || ""
+                const wayland = parts[1] || ""
                 root.desktopEnvironment = desktop.trim()
                 root.windowingSystem = wayland.trim().length > 0 ? "Wayland" : "X11" // Are there others? 🤔
             }

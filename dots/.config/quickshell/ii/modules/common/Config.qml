@@ -91,6 +91,10 @@ Singleton {
                 property bool enable: true
             }
 
+            property JsonObject autostart: JsonObject {
+                property list<string> disabledServices: []
+            }
+
             property JsonObject localsend: JsonObject {
                 property bool autoStart: true
                 property string downloadPath: Directories.localSendDownloadPath.replace("file://", "")
@@ -127,6 +131,13 @@ Singleton {
                         "api_format": "mistral"
                     }
                 ]
+            }
+
+            property JsonObject profile: JsonObject {
+                property string avatarPath: ""
+                property string avatarPicture: ""
+                property string displayName: ""
+                property string descriptionText: ""
             }
 
             property JsonObject appearance: JsonObject {
@@ -233,6 +244,7 @@ Singleton {
                             property bool hourMarks: false
                             property bool dateInClock: true
                             property bool constantlyRotate: false
+                            property bool turnOffRotationOnTiledApps: false
                         }
                         property JsonObject digital: JsonObject {
                             property bool adaptiveAlignment: true

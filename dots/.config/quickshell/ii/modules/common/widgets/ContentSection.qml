@@ -5,7 +5,7 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 
-ColumnLayout {
+Rectangle {
     id: root
     property string title
     property string icon: ""
@@ -14,7 +14,13 @@ ColumnLayout {
     default property alias contentData: sectionContent.data
 
     Layout.fillWidth: true
-    spacing: 6
+    implicitHeight: mainLayout.implicitHeight + 32
+    implicitWidth: mainLayout.implicitWidth + 32
+
+    color: Appearance.colors.colLayer1
+    radius: Appearance.rounding.large
+    border.color: Appearance.colors.colLayer0Border
+    border.width: 1
 
     Component.onCompleted: {
         if (page?.register == false) return
@@ -38,49 +44,55 @@ ColumnLayout {
         searchString: root.title
     }
 
-    RowLayout {
-        spacing: 6
-        OptionalMaterialSymbol {
-            opacity: 1 - highlightOverlay.opacity
-            icon: root.icon
-            iconSize: Appearance.font.pixelSize.hugeass
-        }
-        StyledText {
-            opacity: 1 - highlightOverlay.opacity
-            text: root.title
-            font.pixelSize: Appearance.font.pixelSize.larger
-            font.weight: Font.Medium
-            color: Appearance.colors.colOnSecondaryContainer
-        }
-        MaterialSymbol {
-            opacity: 1 - highlightOverlay.opacity
-            visible: root.tooltip && root.tooltip.length > 0
-            text: "info"
-            iconSize: Appearance.font.pixelSize.larger
-            
-            color: Appearance.colors.colOnSecondaryContainer
-            MouseArea {
-                id: infoMouseArea
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.WhatsThisCursor
-                StyledToolTip {
-                    extraVisibleCondition: false
-                    alternativeVisibleCondition: infoMouseArea.containsMouse
-                    text: root.tooltip
+    ColumnLayout {
+        id: mainLayout
+        anchors.fill: parent
+        anchors.margins: 16
+        spacing: 12
+
+        RowLayout {
+            spacing: 8
+            OptionalMaterialSymbol {
+                opacity: 1 - highlightOverlay.opacity
+                icon: root.icon
+                iconSize: Appearance.font.pixelSize.hugeass
+            }
+            StyledText {
+                opacity: 1 - highlightOverlay.opacity
+                text: root.title
+                font.pixelSize: Appearance.font.pixelSize.larger
+                font.weight: Font.DemiBold
+                color: Appearance.colors.colOnLayer1
+            }
+            MaterialSymbol {
+                opacity: 1 - highlightOverlay.opacity
+                visible: root.tooltip && root.tooltip.length > 0
+                text: "info"
+                iconSize: Appearance.font.pixelSize.larger
+                
+                color: Appearance.colors.colSubtext
+                MouseArea {
+                    id: infoMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.WhatsThisCursor
+                    StyledToolTip {
+                        extraVisibleCondition: false
+                        alternativeVisibleCondition: infoMouseArea.containsMouse
+                        text: root.tooltip
+                    }
                 }
             }
+            HighlightOverlay {
+                id: highlightOverlay
+                visible: false
+            }
         }
-        HighlightOverlay {
-            id: highlightOverlay
-            visible: false
+
+        ColumnLayout {
+            id: sectionContent
+            Layout.fillWidth: true
+            spacing: 8
         }
-    }
-
-    ColumnLayout {
-        id: sectionContent
-        Layout.fillWidth: true
-        spacing: 4
-
     }
 }

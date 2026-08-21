@@ -373,6 +373,9 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 if (text.length === 0) {
+                    // Guard: if another fetch already started (running=true), this
+                    // empty result is from a cancelled process — not a real error.
+                    if (fetcher.running) return;
                     root.forecastLoading = false;
                     Quickshell.execDetached(["notify-send",
                         Translation.tr("Weather Service"),
@@ -408,6 +411,9 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 if (text.length === 0) {
+                    // Guard: cancelled process fires onStreamFinished with empty
+                    // text — not a real error if a new request is already running.
+                    if (openMeteoFetcher.running) return;
                     root.forecastLoading = false;
                     Quickshell.execDetached(["notify-send",
                         Translation.tr("Weather Service"),

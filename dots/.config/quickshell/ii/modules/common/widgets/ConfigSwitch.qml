@@ -12,12 +12,15 @@ RippleButton {
     property alias iconSize: iconWidget.iconSize
 
     Layout.fillWidth: true
-    implicitHeight: contentItem.implicitHeight + 8 * 2
+    implicitHeight: contentItem.implicitHeight + 16
     font.pixelSize: Appearance.font.pixelSize.small
     
+    leftPadding: 12
+    rightPadding: 12
+
     onClicked: checked = !checked
 
-    property color normalColor: ColorUtils.transparentize(Appearance?.colors.colLayer1Hover, 1) 
+    property color normalColor: "transparent"
     property color highlightColor: Appearance.colors.colSecondaryContainer
 
     colBackground: normalColor

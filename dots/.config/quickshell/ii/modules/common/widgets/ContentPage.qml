@@ -17,13 +17,13 @@ StyledFlickable {
     
     ColumnLayout {
         id: contentColumn
-        width: root.forceWidth ? root.baseWidth : Math.max(root.baseWidth, implicitWidth)
         anchors {
             top: parent.top
-            horizontalCenter: parent.horizontalCenter
+            left: parent.left
+            right: parent.right
             margins: 20
         }
-        spacing: 30
+        spacing: 20
     }
 
 }

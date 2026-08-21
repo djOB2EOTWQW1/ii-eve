@@ -11,125 +11,95 @@ ContentPage {
     id: page
     readonly property int index: 1
     property bool register: parent.register ?? false
-    forceWidth: true  
-  
+    property var customAutostartList: []
+    property bool autoSessionRestore: true
+
     Process {  
         id: translationProc  
         property string locale: ""  
         command: [Directories.aiTranslationScriptPath, translationProc.locale]  
     }  
-  
-    ContentSection {  
-        icon: "volume_up"  
-        title: Translation.tr("Audio")  
-  
-        ConfigSwitch {  
-            buttonIcon: "hearing"  
-            text: Translation.tr("Earbang protection")  
-            checked: Config.options.audio.protection.enable  
-            onCheckedChanged: {  
-                Config.options.audio.protection.enable = checked;  
-            }  
-            StyledToolTip {  
-                text: Translation.tr("Prevents abrupt increments and restricts volume limit")  
-            }  
-        }  
-        ConfigRow {  
-            enabled: Config.options.audio.protection.enable  
-            ConfigSpinBox {  
-                icon: "arrow_warm_up"  
-                text: Translation.tr("Max allowed increase")  
-                value: Config.options.audio.protection.maxAllowedIncrease  
-                from: 0  
-                to: 100  
-                stepSize: 2  
-                onValueChanged: {  
-                    Config.options.audio.protection.maxAllowedIncrease = value;  
-                }  
-            }  
-            ConfigSpinBox {  
-                icon: "vertical_align_top"  
-                text: Translation.tr("Volume limit")  
-                value: Config.options.audio.protection.maxAllowed  
-                from: 0  
-                to: 154 // pavucontrol allows up to 153%  
-                stepSize: 2  
-                onValueChanged: {  
-                    Config.options.audio.protection.maxAllowed = value;  
-                }  
-            }  
-        }  
-    }  
-  
-    ContentSection {  
-        icon: "battery_android_full"  
-        title: Translation.tr("Battery")  
-  
-        ConfigRow {  
-            uniform: true  
-            ConfigSpinBox {  
-                icon: "warning"  
-                text: Translation.tr("Low warning")  
-                value: Config.options.battery.low  
-                from: 0  
-                to: 100  
-                stepSize: 5  
-                onValueChanged: {  
-                    Config.options.battery.low = value;  
-                }  
-            }  
-            ConfigSpinBox {  
-                icon: "dangerous"  
-                text: Translation.tr("Critical warning")  
-                value: Config.options.battery.critical  
-                from: 0  
-                to: 100  
-                stepSize: 5  
-                onValueChanged: {  
-                    Config.options.battery.critical = value;  
-                }  
-            }  
-        }  
-        ConfigRow {  
-            uniform: false  
-            Layout.fillWidth: false  
-            ConfigSwitch {  
-                buttonIcon: "pause"  
-                text: Translation.tr("Automatic suspend")  
-                checked: Config.options.battery.automaticSuspend  
-                onCheckedChanged: {  
-                    Config.options.battery.automaticSuspend = checked;  
-                }  
-                StyledToolTip {  
-                    text: Translation.tr("Automatically suspends the system when battery is low")  
-                }  
-            }  
-            ConfigSpinBox {  
-                enabled: Config.options.battery.automaticSuspend  
-                text: Translation.tr("at")  
-                value: Config.options.battery.suspend  
-                from: 0  
-                to: 100  
-                stepSize: 5  
-                onValueChanged: {  
-                    Config.options.battery.suspend = value;  
-                }  
-            }  
-        }  
-        ConfigRow {  
-            uniform: true  
-            ConfigSpinBox {  
-                icon: "charger"  
-                text: Translation.tr("Full warning")  
-                value: Config.options.battery.full  
-                from: 0  
-                to: 101  
-                stepSize: 5  
-                onValueChanged: {  
-                    Config.options.battery.full = value;  
-                }  
-            }  
-        }  
+
+    Process {
+        id: loadCustomAutostartProc
+        command: ["bash", "-c", "cat ~/.config/hypr/custom/user_autostart.sh 2>/dev/null | grep -v '^#' | grep -v '^$'"]
+        stdout: StdioCollector {
+            id: customExecsCollector
+            onStreamFinished: {
+                try {
+                    const lines = customExecsCollector.text.split("\n").filter(l => l.trim().length > 0);
+                    page.customAutostartList = lines;
+                } catch (e) {}
+            }
+        }
+    }
+
+    function reloadCustomAutostart() {
+        loadCustomAutostartProc.running = false
+        loadCustomAutostartProc.running = true
+    }
+
+    function toggleAutostartService(serviceId, enable) {
+        let list = Config.options.autostart?.disabledServices ? [...Config.options.autostart.disabledServices] : [];
+        const idx = list.indexOf(serviceId);
+        if (enable && idx !== -1) {
+            list.splice(idx, 1);
+        } else if (!enable && idx === -1) {
+            list.push(serviceId);
+        }
+        Config.options.autostart.disabledServices = list;
+        const content = list.join("\n");
+        Quickshell.execDetached(["bash", "-c", "mkdir -p ~/.config/hypr/custom && printf '%s\\n' \"$1\" > ~/.config/hypr/custom/disabled_services.list", "--", content]);
+    }
+
+    function removeCustomAutostartCmd(cmdToRemove) {
+        Quickshell.execDetached([
+            "bash", "-c",
+            "TARGET=\"$1\"; if [ -f ~/.config/hypr/custom/user_autostart.sh ]; then grep -F -v -x \"$TARGET\" ~/.config/hypr/custom/user_autostart.sh > ~/.config/hypr/custom/user_autostart.sh.tmp && mv ~/.config/hypr/custom/user_autostart.sh.tmp ~/.config/hypr/custom/user_autostart.sh; fi",
+            "--", cmdToRemove
+        ]);
+        reloadTimer.restart();
+    }
+
+    function saveCurrentSessionSnapshot() {
+        if (!page.autoSessionRestore) return;
+        Quickshell.execDetached(["python3", FileUtils.trimFileProtocol(Directories.config) + "/hypr/custom/scripts/session_saver.py"]);
+    }
+
+    function clearSessionSnapshot() {
+        Quickshell.execDetached(["bash", "-c", "echo '#!/bin/bash' > ~/.config/hypr/custom/session_restore.sh"]);
+    }
+
+    Timer {
+        id: autoSaveSessionTimer
+        interval: 4000
+        running: page.autoSessionRestore
+        repeat: true
+        onTriggered: page.saveCurrentSessionSnapshot()
+    }
+
+    Timer {
+        id: reloadTimer
+        interval: 300
+        onTriggered: page.reloadCustomAutostart()
+    }
+
+    Timer {
+        id: clockTimer
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            liveClockText.text = Qt.formatDateTime(new Date(), Config.options.time.secondPrecision ? Config.options.time.format.replace("mm", "mm:ss") : Config.options.time.format)
+            liveDateText.text = Config.options.time.dateFormat === "ddd MM/dd" ? Qt.formatDateTime(new Date(), "dddd, MMMM d, yyyy") : Qt.formatDateTime(new Date(), "dddd, d MMMM yyyy")
+        }
+    }
+
+    Component.onCompleted: {
+        page.reloadCustomAutostart();
+        if (page.autoSessionRestore) {
+            page.saveCurrentSessionSnapshot();
+        }
     }  
   
     ContentSection {  
@@ -217,10 +187,52 @@ ContentPage {
             }  
         }  
     }  
-  
+
+    // LARGE DIGITAL CLOCK SECTION
     ContentSection {  
         icon: "nest_clock_farsight_analog"  
         title: Translation.tr("Time")  
+
+        // Large Clock Display Card
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 90
+            radius: Appearance.rounding.normal
+            color: Appearance.colors.colLayer2
+            border.color: Appearance.colors.colLayer0Border
+            border.width: 1
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 16
+
+                MaterialSymbol {
+                    text: "schedule"
+                    iconSize: 38
+                    color: Appearance.colors.colPrimary
+                }
+
+                ColumnLayout {
+                    spacing: 2
+                    Layout.fillWidth: true
+
+                    StyledText {
+                        id: liveClockText
+                        text: Qt.formatDateTime(new Date(), Config.options.time.secondPrecision ? Config.options.time.format.replace("mm", "mm:ss") : Config.options.time.format)
+                        font.pixelSize: 34
+                        font.weight: Font.Bold
+                        color: Appearance.colors.colOnLayer2
+                    }
+
+                    StyledText {
+                        text: Translation.tr("Live Clock Preview • ") + (Config.options.time.format.includes("ap") || Config.options.time.format.includes("AP") ? Translation.tr("12-Hour Format") : Translation.tr("24-Hour Format"))
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        color: Appearance.colors.colSubtext
+                    }
+                }
+            }
+        }
   
         ConfigSwitch {  
             buttonIcon: "pace"  
@@ -241,10 +253,11 @@ ContentPage {
             ConfigSelectionArray {  
                 currentValue: Config.options.time.format  
                 onSelected: newValue => {  
+                    const lockFile = FileUtils.trimFileProtocol(Directories.config) + "/hypr/hyprlock.conf";
                     if (newValue === "hh:mm") {  
-                        Quickshell.execDetached(["bash", "-c", `sed -i 's/\\TIME12\\b/TIME/' '${FileUtils.trimFileProtocol(Directories.config)}/hypr/hyprlock.conf'`]);  
+                        Quickshell.execDetached(["bash", "-c", "sed -i 's/\\$TIME12/\\$TIME/g' \"$1\"", "--", lockFile]);  
                     } else {  
-                        Quickshell.execDetached(["bash", "-c", `sed -i 's/\\TIME\\b/TIME12/' '${FileUtils.trimFileProtocol(Directories.config)}/hypr/hyprlock.conf'`]);  
+                        Quickshell.execDetached(["bash", "-c", "sed -i 's/\\$TIME\\b/\\$TIME12/g' \"$1\"", "--", lockFile]);  
                     }  
   
                     Config.options.time.format = newValue;  
@@ -267,9 +280,51 @@ ContentPage {
         }  
     }  
 
+    // LARGE DATE DISPLAY SECTION
     ContentSection {
         icon: "calendar_month"
         title: Translation.tr("Date")
+
+        // Large Date Display Card (Format syncs with Date format setting!)
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 80
+            radius: Appearance.rounding.normal
+            color: Appearance.colors.colLayer2
+            border.color: Appearance.colors.colLayer0Border
+            border.width: 1
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 16
+
+                MaterialSymbol {
+                    text: "today"
+                    iconSize: 34
+                    color: Appearance.colors.colSecondary
+                }
+
+                ColumnLayout {
+                    spacing: 2
+                    Layout.fillWidth: true
+
+                    StyledText {
+                        id: liveDateText
+                        text: Config.options.time.dateFormat === "ddd MM/dd" ? Qt.formatDateTime(new Date(), "dddd, MMMM d, yyyy") : Qt.formatDateTime(new Date(), "dddd, d MMMM yyyy")
+                        font.pixelSize: 22
+                        font.weight: Font.DemiBold
+                        color: Appearance.colors.colOnLayer2
+                    }
+
+                    StyledText {
+                        text: Translation.tr("Bar Format: ") + Config.options.time.dateFormat + " (" + Qt.formatDateTime(new Date(), Config.options.time.dateFormat) + ")"
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        color: Appearance.colors.colSubtext
+                    }
+                }
+            }
+        }
 
         ContentSubsection {
             title: Translation.tr("Format")
@@ -282,14 +337,38 @@ ContentPage {
                 }
                 options: [
                     {
-                        displayName: Translation.tr("Date First dd/MM"),
+                        displayName: Translation.tr("Date First (dd/MM)"),
                         value: "ddd dd/MM"
                     },
                     {
-                        displayName: Translation.tr("Month First MM/dd"),
+                        displayName: Translation.tr("Month First (MM/dd)"),
                         value: "ddd MM/dd"
                     }
                 ]
+            }
+        }
+    }
+
+    // AUTOMATIC WORKSPACE SESSION SAVE & RESTORE SECTION
+    ContentSection {
+        icon: "save"
+        title: Translation.tr("Session Restore")
+        tooltip: Translation.tr("When enabled, your last active window session and workspaces are automatically saved and restored on reboot.")
+
+        ConfigSwitch {
+            buttonIcon: "history"
+            text: Translation.tr("Automatically save and restore last session")
+            checked: page.autoSessionRestore
+            onCheckedChanged: {
+                page.autoSessionRestore = checked;
+                if (checked) {
+                    page.saveCurrentSessionSnapshot();
+                } else {
+                    page.clearSessionSnapshot();
+                }
+            }
+            StyledToolTip {
+                text: Translation.tr("Automatically captures active window layout and restores it upon system boot")
             }
         }
     }
@@ -315,4 +394,135 @@ ContentPage {
             }  
         }  
     }  
+
+    // AUTOSTART APPS & CUSTOM COMMAND MANAGER SECTION
+    ContentSection {
+        icon: "rocket_launch"
+        title: Translation.tr("Autostart Applications")
+        tooltip: Translation.tr("Manage applications and background services launched automatically on system startup.")
+
+        property var autostartApps: [
+            { id: "hypridle", name: Translation.tr("Hypridle (Idle & Lock Daemon)"), icon: "timer", command: "hypridle", enabled: true },
+            { id: "easyeffects", name: Translation.tr("EasyEffects (Audio Effects Service)"), icon: "equalizer", command: "easyeffects --hide-window --service-mode", enabled: true },
+            { id: "cliphist", name: Translation.tr("Cliphist (Clipboard History Daemon)"), icon: "content_paste", command: "cliphist store", enabled: true },
+            { id: "keyring", name: Translation.tr("Gnome Keyring (Secrets Daemon)"), icon: "key", command: "gnome-keyring-daemon --start", enabled: true },
+            { id: "geoclue", name: Translation.tr("Geoclue (Location Services)"), icon: "location_on", command: "start_geoclue_agent.sh", enabled: true }
+        ]
+
+        ContentSubsection {
+            title: Translation.tr("Background System Services")
+            Layout.fillWidth: true
+
+            Repeater {
+                model: parent.parent.autostartApps
+
+                delegate: ConfigSwitch {
+                    required property var modelData
+                    buttonIcon: modelData.icon
+                    text: modelData.name
+                    checked: !(Config.options.autostart?.disabledServices || []).includes(modelData.id)
+                    onCheckedChanged: {
+                        page.toggleAutostartService(modelData.id, checked);
+                    }
+                    StyledToolTip {
+                        text: modelData.command
+                    }
+                }
+            }
+        }
+
+        // Custom User Autostart Commands List
+        ContentSubsection {
+            title: Translation.tr("User Custom Autostart Commands")
+            tooltip: Translation.tr("Custom commands added to ~/.config/hypr/custom/user_autostart.sh")
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Repeater {
+                    model: page.customAutostartList
+
+                    delegate: Rectangle {
+                        required property string modelData
+                        required property int index
+
+                        Layout.fillWidth: true
+                        implicitHeight: 44
+                        radius: Appearance.rounding.small
+                        color: Appearance.colors.colLayer2
+                        border.color: Appearance.colors.colLayer0Border
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            spacing: 10
+
+                            MaterialSymbol {
+                                text: "terminal"
+                                iconSize: 20
+                                color: Appearance.colors.colPrimary
+                            }
+
+                            StyledText {
+                                text: modelData
+                                font.pixelSize: Appearance.font.pixelSize.small
+                                color: Appearance.colors.colOnLayer2
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+
+                            RippleButtonWithIcon {
+                                materialIcon: "delete"
+                                mainText: Translation.tr("Delete")
+                                onClicked: {
+                                    page.removeCustomAutostartCmd(modelData);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                StyledText {
+                    visible: page.customAutostartList.length === 0
+                    text: Translation.tr("No user autostart commands added yet. Use the field below to add one.")
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                    color: Appearance.colors.colSubtext
+                }
+            }
+        }
+
+        ContentSubsection {
+            title: Translation.tr("Add Custom Autostart Command")
+            tooltip: Translation.tr("Add any custom command or application to launch on startup (e.g. discord --start-minimized)")
+            Layout.fillWidth: true
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                MaterialTextArea {
+                    id: customExecInput
+                    Layout.fillWidth: true
+                    placeholderText: Translation.tr("Command (e.g. telegram-desktop -autostart)")
+                }
+
+                RippleButtonWithIcon {
+                    materialIcon: "add"
+                    mainText: Translation.tr("Add Command")
+                    onClicked: {
+                        if (customExecInput.text.trim().length > 0) {
+                            const cmd = customExecInput.text.trim();
+                            const appendCmd = "mkdir -p ~/.config/hypr/custom && printf '%s\\n' \"$1\" >> ~/.config/hypr/custom/user_autostart.sh && chmod +x ~/.config/hypr/custom/user_autostart.sh";
+                            Quickshell.execDetached(["bash", "-c", appendCmd, "--", cmd]);
+                            customExecInput.text = "";
+                            reloadTimer.restart();
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

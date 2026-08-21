@@ -10,6 +10,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import qs.services
 import qs.modules.common
@@ -29,6 +30,9 @@ ApplicationWindow {
     property string lastSearch: ""
     property int lastSearchIndex: -1
     property int resultsCount: 0
+
+    property bool showingProfile: false
+    readonly property string activePageSource: root.showingProfile ? "modules/settings/pages/Profile.qml" : (root.pages[root.currentPage] ? root.pages[root.currentPage].component : "")
 
     property var pages: [
         {
@@ -63,6 +67,11 @@ ApplicationWindow {
             component: "modules/settings/ServicesConfig.qml"
         },
         {
+            name: Translation.tr("Hyprland"),
+            icon: "monitor",
+            component: "modules/settings/HyprlandConfig.qml"
+        },
+        {
             name: Translation.tr("Extensions"),
             icon: "extension",
             component: "modules/settings/ExtensionsConfig.qml"
@@ -71,11 +80,6 @@ ApplicationWindow {
             name: Translation.tr("Advanced"),
             icon: "construction",
             component: "modules/settings/AdvancedConfig.qml"
-        },
-        {
-            name: Translation.tr("About"),
-            icon: "info",
-            component: "modules/settings/About.qml"
         }
     ]
     
@@ -88,6 +92,11 @@ ApplicationWindow {
         MaterialThemeLoader.reapplyTheme()
         Config.readWriteDelay = 0 // Settings app always only sets one var at a time so delay isn't needed
         ExtensionManager.watchFileChanges = false // Settings app doesn't need file watching to prevent loops
+    }
+
+    function goToPage(index) {
+        root.currentPage = index
+        root.showingProfile = false
     }
 
     minimumWidth: 750
@@ -105,19 +114,19 @@ ApplicationWindow {
         Keys.onPressed: (event) => {
             if (event.modifiers === Qt.ControlModifier) {
                 if (event.key === Qt.Key_PageDown) {
-                    root.currentPage = Math.min(root.currentPage + 1, root.pages.length - 1)
+                    root.goToPage(Math.min(root.currentPage + 1, root.pages.length - 1))
                     event.accepted = true;
                 } 
                 else if (event.key === Qt.Key_PageUp) {
-                    root.currentPage = Math.max(root.currentPage - 1, 0)
+                    root.goToPage(Math.max(root.currentPage - 1, 0))
                     event.accepted = true;
                 }
                 else if (event.key === Qt.Key_Tab) {
-                    root.currentPage = (root.currentPage + 1) % root.pages.length;
+                    root.goToPage((root.currentPage + 1) % root.pages.length);
                     event.accepted = true;
                 }
                 else if (event.key === Qt.Key_Backtab) {
-                    root.currentPage = (root.currentPage - 1 + root.pages.length) % root.pages.length;
+                    root.goToPage((root.currentPage - 1 + root.pages.length) % root.pages.length);
                     event.accepted = true;
                 }
             }
@@ -127,23 +136,44 @@ ApplicationWindow {
             Layout.alignment: Qt.AlignCenter
             Layout.fillWidth: true
             Layout.fillHeight: false
+            spacing: 12
 
+            MaterialShape {
+                implicitWidth: 36
+                implicitHeight: 36
+                shape: MaterialShape.Shape.Superellipse
+                color: Appearance.colors.colPrimaryContainer
 
-            StyledText {
-                id: titleText
-                color: Appearance.colors.colOnLayer0
-                text: Translation.tr("Settings")
-                Layout.leftMargin: 20
-                font {
-                    family: Appearance.font.family.title
-                    pixelSize: Appearance.font.pixelSize.title
-                    variableAxes: Appearance.font.variableAxes.title
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: "tune"
+                    iconSize: 20
+                    color: Appearance.colors.colOnPrimaryContainer
                 }
             }
 
-            Item {
-                Layout.fillWidth: true
+            ColumnLayout {
+                spacing: 0
+                StyledText {
+                    id: titleText
+                    color: Appearance.colors.colOnLayer0
+                    text: Translation.tr("illogical-impulse")
+                    font {
+                        family: Appearance.font.family.title
+                        pixelSize: Appearance.font.pixelSize.larger
+                        weight: Font.Bold
+                    }
+                }
+                StyledText {
+                    color: Appearance.colors.colSubtext
+                    text: Translation.tr("System & Desktop Settings")
+                    font {
+                        pixelSize: Appearance.font.pixelSize.small
+                    }
+                }
             }
+
+            Item { Layout.fillWidth: true }
 
             RowLayout {
                 id: searchBox
@@ -183,6 +213,7 @@ ApplicationWindow {
                         }
                     }
                 }
+
                 ToolbarTextField { // Search box
                     id: searchInput
                     Layout.topMargin: 4
@@ -199,23 +230,6 @@ ApplicationWindow {
                         root.lastSearchIndex = -1
                         root.resultsCount = 0
                     }
-
-                    // We may use this in the future, this only searches the best result
-                    /* onAccepted: {
-                        if (!searchInput.text || searchInput.text.trim() === "") return
-                        
-                        let normalizedText = searchInput.text.toLowerCase()
-                        let bestResult = SearchRegistry.getBestResult(normalizedText)
-
-                        if (!bestResult) {
-                            noMoreResultsAnim.restart()
-                            return
-                        }
-
-                        root.currentPage = bestResult.pageIndex
-                        root.scrollPos = bestResult.yPos
-                        SearchRegistry.currentSearch = bestResult.matchedString
-                    } */
 
                     onAccepted: {
                         const result = SearchRegistry.getResultsRanked(searchInput.text)
@@ -235,7 +249,6 @@ ApplicationWindow {
                         if (root.lastSearch != searchInput.text) {
                             root.lastSearchIndex = 0
                             root.lastSearch = searchInput.text
-                            
                         } else {
                             root.lastSearchIndex++
                             if (SearchRegistry.getResultsRanked(searchInput.text).length === 1) {
@@ -247,20 +260,33 @@ ApplicationWindow {
                         let results = SearchRegistry.getResultsRanked(normalizedText)
                         if (results.length > 0) {
                             let index = root.lastSearchIndex % results.length
-                            let result = results[index]
+                            let res = results[index]
                             
                             root.resultsCount = results.length
-                            root.currentPage = result.pageIndex
-                            //root.scrollPos = result.yPos
-                            SearchRegistry.currentSearch = result.matchedString
+                            root.goToPage(res.pageIndex)
+                            SearchRegistry.currentSearch = res.matchedString
                         }
                     }
                 }
-            }
-            
 
-            Item {
-                Layout.fillWidth: true
+                RippleButton {
+                    visible: searchInput.text.length > 0
+                    buttonRadius: Appearance.rounding.full
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    onClicked: {
+                        searchInput.text = ""
+                        root.lastSearchIndex = -1
+                        root.resultsCount = 0
+                        SearchRegistry.currentSearch = ""
+                    }
+                    contentItem: MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "close"
+                        iconSize: 16
+                        color: Appearance.colors.colSubtext
+                    }
+                }
             }
 
             RippleButton {
@@ -286,7 +312,7 @@ ApplicationWindow {
                 id: navRailWrapper
                 Layout.fillHeight: true
                 Layout.margins: 5
-                implicitWidth: navRail.expanded ? 150 : fab.baseSize
+                implicitWidth: navRail.expanded ? 195 : 56
                 Behavior on implicitWidth {
                     animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                 }
@@ -304,44 +330,94 @@ ApplicationWindow {
                         focus: root.visible
                     }
 
-                    FloatingActionButton {
-                        id: fab
-                        property bool justCopied: false
-                        iconText: justCopied ? "check" : "edit"
-                        buttonText: justCopied ? Translation.tr("Path copied") : Translation.tr("Config file")
-                        expanded: navRail.expanded
-                        downAction: () => {
-                            Qt.openUrlExternally(`${Directories.config}/illogical-impulse/config.json`);
-                        }
-                        altAction: () => {
-                            Quickshell.clipboardText = CF.FileUtils.trimFileProtocol(`${Directories.config}/illogical-impulse/config.json`);
-                            fab.justCopied = true;
-                            revertTextTimer.restart()
-                        }
+                    // Profile Header in Sidebar (like end4-pC)
+                    Item {
+                        visible: navRail.expanded
+                        Layout.fillWidth: true
+                        implicitHeight: 48
 
-                        Timer {
-                            id: revertTextTimer
-                            interval: 1500
-                            onTriggered: {
-                                fab.justCopied = false;
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 4
+                            anchors.rightMargin: 4
+                            spacing: 8
+
+                            Rectangle {
+                                width: 36
+                                height: 36
+                                radius: 18
+                                color: Appearance.colors.colPrimaryContainer
+
+                                Image {
+                                    id: avatarImg
+                                    anchors.fill: parent
+                                    source: {
+                                        const pic = Config.options.profile.avatarPicture
+                                        if (!pic || pic === "") return "file://" + CF.FileUtils.trimFileProtocol(Directories.home) + "/.face"
+                                        return "file://" + CF.FileUtils.trimFileProtocol(pic)
+                                    }
+                                    fillMode: Image.PreserveAspectCrop
+                                    layer.enabled: true
+                                    layer.effect: OpacityMask {
+                                        maskSource: Rectangle { width: 36; height: 36; radius: 18 }
+                                    }
+                                    onStatusChanged: {
+                                        if (status === Image.Ready) visible = true
+                                        else if (status === Image.Error) visible = false
+                                    }
+                                }
+
+                                MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "account_circle"
+                                    iconSize: 22
+                                    color: Appearance.colors.colOnPrimaryContainer
+                                    visible: !avatarImg.visible || avatarImg.status === Image.Error
+                                }
+                            }
+
+                            ColumnLayout {
+                                spacing: 0
+                                Layout.fillWidth: true
+
+                                StyledText {
+                                    text: Config.options.profile.displayName !== "" ? Config.options.profile.displayName : SystemInfo.username
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    font.weight: Font.DemiBold
+                                    color: Appearance.colors.colOnLayer0
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                StyledText {
+                                    text: Config.options.profile.descriptionText === "::uptime::" ? Translation.tr("Up • %1").arg(DateTime.uptime) : SystemInfo.distroName
+                                    font.pixelSize: Appearance.font.pixelSize.smallest
+                                    color: Appearance.colors.colSubtext
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
                             }
                         }
 
-                        StyledToolTip {
-                            text: Translation.tr("Open the shell config file\nAlternatively right-click to copy path")
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.showingProfile = !root.showingProfile
                         }
                     }
 
                     NavigationRailTabArray {
-                        currentIndex: root.currentPage
+                        currentIndex: root.showingProfile ? -1 : root.currentPage
                         expanded: navRail.expanded
                         Repeater {
                             model: root.pages
                             NavigationRailButton {
                                 required property var index
                                 required property var modelData
-                                toggled: root.currentPage === index
-                                onPressed: root.currentPage = index;
+                                toggled: !root.showingProfile && root.currentPage === index
+                                onClicked: {
+                                    root.goToPage(index);
+                                }
                                 expanded: navRail.expanded
                                 buttonIcon: modelData.icon
                                 buttonIconRotation: modelData.iconRotation || 0
@@ -366,15 +442,16 @@ ApplicationWindow {
                     id: pageLoader
                     anchors.fill: parent
                     opacity: 1.0
+                    asynchronous: true
 
                     active: Config.ready
                     Component.onCompleted: {
-                        source = root.pages[0].component
+                        source = root.activePageSource
                     }
 
                     Connections {
                         target: root
-                        function onCurrentPageChanged() {
+                        function onActivePageSourceChanged() {
                             switchAnim.complete();
                             switchAnim.start();
                         }
@@ -388,7 +465,9 @@ ApplicationWindow {
                         id: scrollTimer
                         interval: 250
                         onTriggered: {
-                            pageLoader.item.contentY = root.scrollPos
+                            if (pageLoader.item && pageLoader.item.contentY !== undefined) {
+                                pageLoader.item.contentY = root.scrollPos
+                            }
                             root.scrollPos = -1
                         }
                     }
@@ -405,36 +484,19 @@ ApplicationWindow {
                             easing.type: Appearance.animation.elementMoveExit.type
                             easing.bezierCurve: Appearance.animationCurves.emphasizedFirstHalf
                         }
-                        ParallelAnimation {
-                            PropertyAction {
-                                target: pageLoader
-                                property: "source"
-                                value: root.pages[root.currentPage].component
-                            }
-                            PropertyAction {
-                                target: pageLoader
-                                property: "anchors.topMargin"
-                                value: 20
-                            }
+                        PropertyAction {
+                            target: pageLoader
+                            property: "source"
+                            value: root.activePageSource
                         }
-                        ParallelAnimation {
-                            NumberAnimation {
-                                target: pageLoader
-                                properties: "opacity"
-                                from: 0
-                                to: 1
-                                duration: 200
-                                easing.type: Appearance.animation.elementMoveEnter.type
-                                easing.bezierCurve: Appearance.animationCurves.emphasizedLastHalf
-                            }
-                            NumberAnimation {
-                                target: pageLoader
-                                properties: "anchors.topMargin"
-                                to: 0
-                                duration: 200
-                                easing.type: Appearance.animation.elementMoveEnter.type
-                                easing.bezierCurve: Appearance.animationCurves.emphasizedLastHalf
-                            }
+                        NumberAnimation {
+                            target: pageLoader
+                            properties: "opacity"
+                            from: 0
+                            to: 1
+                            duration: 180
+                            easing.type: Appearance.animation.elementMoveEnter.type
+                            easing.bezierCurve: Appearance.animationCurves.emphasizedLastHalf
                         }
                     }
                 }

@@ -3,6 +3,6 @@ import QtQuick.Layouts
 
 RowLayout {
     property bool uniform: false
-    spacing: 4
+    spacing: 12
     uniformCellSizes: uniform
 }

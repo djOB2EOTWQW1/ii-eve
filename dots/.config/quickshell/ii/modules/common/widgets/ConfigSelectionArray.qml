@@ -81,7 +81,7 @@ Flow {
                 anchors.topMargin: -5
                 registry: root.registry
                 participates: paletteButton.enabled
-                onActivated: root.selected(paletteButton.modelData.value)
+                onActivated: root.selected(paletteButton.modelData.value ?? paletteButton.modelData)
             }
         }
     }

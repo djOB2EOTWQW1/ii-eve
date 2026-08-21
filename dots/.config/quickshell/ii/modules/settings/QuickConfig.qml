@@ -12,8 +12,6 @@ ContentPage {
     id: page
     readonly property int index: 0
     property bool register: parent.register ?? false
-    forceWidth: true
-    interactive: false
 
     property bool allowHeavyLoad: false
     property ListModel favouritesCarouselModel: ListModel {}
@@ -106,6 +104,11 @@ ContentPage {
         }
     }
 
+    HeroQuickDashboard {
+        Layout.fillWidth: true
+        Layout.bottomMargin: 10
+    }
+
     // Wallpaper selection
     ContentSection {
         icon: "format_paint"
@@ -146,7 +149,9 @@ ContentPage {
                     id: favouritesCarousel
                     implicitWidth: parent.implicitWidth
                     implicitHeight: parent.implicitHeight
+                    
                     showBadges: true
+                    showOpenningAnimation: true
                     
                     leftPadding: 0
                     rightPadding: 0
@@ -179,7 +184,7 @@ ContentPage {
 
                             // fix for resolution
                             thumbnailSizeName: Images.thumbnailSizeNameForDimensions(512, 512)
-                            sourceSize: (512,512)
+                            sourceSize: Qt.size(512, 512)
                         }
                     }
                 }
@@ -214,7 +219,7 @@ ContentPage {
                     }
                     StyledText {
                         text: Translation.tr("No favourites yet\nAdd some from wallpaper selector")
-                        font.pixelSize: Appearance.font.pixelSize.body
+                        font.pixelSize: Appearance.font.pixelSize.normal
                         color: Appearance.colors.colOnLayer3
                         horizontalAlignment: Text.AlignHCenter
                     }
@@ -400,31 +405,6 @@ ContentPage {
                     ]
                 }
             }
-
-            ContentSubsection {
-                title: Translation.tr("Rounding style")
-                Layout.fillWidth: false
-
-                ConfigSelectionArray {
-                    currentValue: Config.options.appearance.sharpMode
-                    onSelected: newValue => {
-                        Config.options.appearance.sharpMode = newValue;
-                        HyprlandSettings.setRounding(newValue ? 0 : Config.options.appearance.defaultBorderRadius);
-                    }
-                    options: [ 
-                        {
-                            displayName: Translation.tr("Default"),
-                            icon: "rounded_corner",
-                            value: false
-                        }, 
-                        {
-                            displayName: Translation.tr("Sharp"),
-                            icon: "square",
-                            value: true
-                        }
-                    ]
-                }
-            } 
         }
 
         ConfigSpinBox {
@@ -504,34 +484,4 @@ ContentPage {
             }                          
         }
     }    
-
-    NoticeBox {
-        Layout.fillWidth: true
-        Layout.topMargin: -20
-        text: Translation.tr('Not all options are available in this app. You should also check the config file by hitting the "Config file" button on the topleft corner or opening ~/.config/illogical-impulse/config.json manually.')
-
-        RippleButtonWithIcon {
-            id: copyPathButton
-            property bool justCopied: false
-            buttonRadius: Appearance.rounding.small
-            materialIcon: justCopied ? "check" : "content_copy"
-            mainText: justCopied ? Translation.tr("Path copied") : Translation.tr("Copy path")
-            onClicked: {
-                copyPathButton.justCopied = true
-                Quickshell.clipboardText = FileUtils.trimFileProtocol(`${Directories.config}/illogical-impulse/config.json`);
-                revertTextTimer.restart();
-            }
-            colBackground: ColorUtils.transparentize(Appearance.colors.colPrimaryContainer)
-            colBackgroundHover: Appearance.colors.colPrimaryContainerHover
-            colRipple: Appearance.colors.colPrimaryContainerActive
-
-            Timer {
-                id: revertTextTimer
-                interval: 1500
-                onTriggered: {
-                    copyPathButton.justCopied = false
-                }
-            }
-        }
-    }
 }
